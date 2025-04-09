@@ -54,9 +54,11 @@ public class GolfAdapter extends BaseAdapter {
     @Override
     public long getItemId(int position) {return holes.get(position); }
 
-//    public void setImage(Integer pos, Integer newResId){
-//        golfHoleView.setImageResource(holes.get(position));
-//    }
+    public long setImage(int pos, Integer newResId){
+        long oldID = getItemId(pos);
+        holes.set(pos, newResId);
+        return oldID;
+    }
 
     /**
      * Recycles or creates a new View for cells that go in the MainActivity
