@@ -23,21 +23,20 @@ import androidx.appcompat.widget.LinearLayoutCompat;
 
 import java.util.List;
 
-public class holeAdapter extends BaseAdapter {
+public class GolfAdapter extends BaseAdapter {
 
     // Fields for context and resource ids.
     private Context mContext;
-    private List<Boolean> holes;
+    private List<Integer> holes;
 
 
     /**
      * Constructor
      *
      * @param  c Context from the activity that is creating this adapter
-     * @param  imgIds An ArrayList containing the res ids of car thumbnail images
-     * @param  txtIds An ArrayList containing the res ids of car model name strings
+     * @param  holeList An ArrayList containing the res ids of car thumbnail images
      */
-    public holeAdapter(Context c, List<Boolean> holeList){
+    public GolfAdapter(Context c, List<Integer> holeList){
         mContext = c;
         this.holes = holeList;
     }
@@ -53,8 +52,11 @@ public class holeAdapter extends BaseAdapter {
     }
 
     @Override
-    public long getItemId(int position) {
-    }
+    public long getItemId(int position) {return holes.get(position); }
+
+//    public void setImage(Integer pos, Integer newResId){
+//        golfHoleView.setImageResource(holes.get(position));
+//    }
 
     /**
      * Recycles or creates a new View for cells that go in the MainActivity
@@ -66,20 +68,16 @@ public class holeAdapter extends BaseAdapter {
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
         // View is a linear layout containing
-        LinearLayoutCompat linLayout = (LinearLayoutCompat) convertView;
-        Checkbox
+        ImageView golfHoleView = (ImageView) convertView;
 
         // if convertView is not recycled, create it from xml with LayoutInflater
-        if (linLayout == null) {
+        if (golfHoleView == null) {
             LayoutInflater lf = LayoutInflater.from(mContext);
-            linLayout = (LinearLayoutCompat)lf.inflate(R.layout.grid_cell, parent, false);
+            golfHoleView = (ImageView) lf.inflate(R.layout.hole, parent, false);
         }
 
-        // Set the correct image and text data based on the grid position, and return the View
-        imageview = linLayout.findViewById(R.id.grid_image_view);
-        textview = linLayout.findViewById(R.id.grid_text_view);
-        imageview.setImageResource(mThumbIds.get(position));
-        textview.setText(mTextIds.get(position));
-        return linLayout;
+        // Put data (actual image reference) in imageView + return it
+        golfHoleView.setImageResource(holes.get(position));
+        return golfHoleView;
     }
 }
