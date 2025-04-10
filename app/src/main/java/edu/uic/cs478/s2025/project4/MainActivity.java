@@ -1,8 +1,14 @@
 package edu.uic.cs478.s2025.project4;
 
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.Message;
 import android.util.Log;
 import android.widget.GridView;
+import android.widget.ProgressBar;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
@@ -10,13 +16,40 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import java.io.InputStream;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Random;
 
 
 public class MainActivity extends AppCompatActivity {
 
+    private int gameState = -1;
+    private static final int RESUME = 1;
+    private static final int GAME_OVER = 0;
+    private static final int PLAYER_1 = 1;
+    private static final int PLAYER_2 = 2;
+    private static final int P1_SHOT = 10;
+    private static final int P2_SHOT = 20;
 
+    // This handler, running on the UI thread, will be our server
+    private final Handler mHandler = new Handler(Looper.getMainLooper()) {
+        public void handleMessage(Message msg) {
+            int what = msg.what ;
+            switch (what) {
+                case P1_SHOT:
+                    // TODO: Handle Player 1 shot
+                    break;
+                case P2_SHOT:
+                    // TODO: Handle Player 2 shot
+                    break;
+                default:
+                    // Do nothing
+                    break;
+            }
+
+        }
+    }	; // Handler is associated with UI Thread
     protected ArrayList<Integer> holeList;
     private GolfAdapter golfAdapter;
     private int winner;
@@ -155,6 +188,84 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
+
+        // This handler, running on the UI thread, will be our server
+//        private final Handler mHandler = new Handler(Looper.getMainLooper()) {
+//            public void handleMessage(Message msg) {
+//                int what = msg.what ;
+//                switch (what) {
+//                    case MainActivity.PLAYER_1:
+//                        // Take Turn
+//                        break;
+//                    case GAME_OVER:
+//                        // TODO: stop thread
+//                        break;
+//                    default:
+//                        // Do nothing
+//                        break;
+//                }
+//
+//            }
+//        }	; // Handler is associated with UI Thread
+
+//        public void run() {
+//
+//            // Get a message instance with target set to UI thread's message queue
+//            Message msg = mHandler.obtainMessage(HandleMessageActivity.SET_PROGRESS_VISIBLE) ;
+//            mHandler.sendMessage(msg) ;
+//
+//            // again, arg1 shows current progress
+//            msg = mHandler.obtainMessage(POST_PROGRESS) ;
+//            msg.arg1 = 0 ;
+//            mHandler.sendMessage(msg) ;
+//
+//            try { Thread.sleep(2000); }
+//            catch (InterruptedException e) { System.out.println("Thread interrupted!") ; }
+//
+//            // and again, arg1 shows current progress
+//            msg = mHandler.obtainMessage(POST_PROGRESS) ;
+//            msg.arg1 = 25 ;
+//            mHandler.sendMessage(msg) ;
+//
+//            try { Thread.sleep(2000); }
+//            catch (InterruptedException e) { System.out.println("Thread interrupted!") ; }
+//
+//            // and again, arg1 shows current progress
+//            msg = mHandler.obtainMessage(POST_PROGRESS) ;
+//            msg.arg1 = 50 ;
+//            // UB 3/17/2021 -- Try sendToTarget() this time
+//            // mHandler.sendMessage(msg) ;
+//            msg.sendToTarget() ;
+//
+//            try { Thread.sleep(2000); }
+//            catch (InterruptedException e) { System.out.println("Thread interrupted!") ; }
+//
+//            // and again, arg1 shows current progress
+//            msg = mHandler.obtainMessage(POST_PROGRESS) ;
+//            msg.arg1 = 75 ;
+//            // UB 3/17/2021 -- Try sendToTarget() again
+//
+//            // mHandler.sendMessage(msg) ;
+//            msg.sendToTarget() ;
+//
+//            // download bitmap
+//            Bitmap b = null ;
+//            try {
+//                String urlString = "https://pictures.topspeed.com/IMG/crop/200512/2003-ferrari-enzo-40_600x0w.jpg";
+//                URL aUrl = new URL(urlString) ;   // This could raise malformed URL exception
+//                b = BitmapFactory.decodeStream((InputStream) aUrl.getContent()) ;
+//            }
+//            catch (Exception e) {System.out.println("Could not read image from web!") ; }
+//
+//            // Get message to UI's queue, send bitmap along with message
+//            msg = mHandler.obtainMessage(UPDATE_IMAGE_VIEW) ;
+//            msg.obj = b;
+//            mHandler.sendMessage(msg) ;
+//
+//            // This message will be queued after previous message
+//            msg = mHandler.obtainMessage(SET_PROGRESS_INVISIBLE) ;
+//            mHandler.sendMessage(msg) ;
+//        }
 
 
 }
