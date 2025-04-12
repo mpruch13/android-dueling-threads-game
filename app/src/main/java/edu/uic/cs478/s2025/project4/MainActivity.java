@@ -1,14 +1,11 @@
 package edu.uic.cs478.s2025.project4;
 
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.util.Log;
 import android.widget.GridView;
-import android.widget.ProgressBar;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
@@ -16,49 +13,91 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
-import java.io.InputStream;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Random;
 
 
 public class MainActivity extends AppCompatActivity {
-
+    /// TODO: MAJOR ERROR - Don't initialize player positions to a valid location, this causes a catastrophe if a player's first shot happens to land on the other player's initial spot
     private int gameState = -1;
     private static final int RESUME = 1;
-    private static final int GAME_OVER = 0;
-    private static final int PLAYER_1 = 1;
-    private static final int PLAYER_2 = 2;
-    private static final int P1_SHOT = 10;
-    private static final int P2_SHOT = 20;
+    protected static final int GAME_OVER = 0;
+    protected static final int PLAYER_1 = 1;
+    protected static final int PLAYER_2 = 2;
+    protected static final int P1_SHOT = 10;
+    protected static final int P2_SHOT = 20;
+    protected static final int TAKE_TURN = 50;
+    protected static final int OUTCOME = 60;
+    protected static final int BIG_MISS = 11;
+    protected static final int NEAR_GROUP = 12;
+    protected static final int NEAR_MISS = 12;
+    protected static final int THREAD_READY = 100;
+    private static PlayerThread p1Thread, p2Thread;
+    private static Handler p1Handler, p2Handler;
+    private boolean p1Ready = false;
+    private  boolean p2Ready = true;
+    protected ArrayList<Integer> holeList;
+
+    private GridView gridView;
+    private GolfAdapter golfAdapter;
+    private int winner;
+    protected static final Integer numHoles = 40;
+    private int p1Location = -1;
+    private int p1LastOutcome = BIG_MISS;
+    private int p2LastOutcome = BIG_MISS;
+    private int p2Location = - 1;
+    private boolean gameOver = false;
 
     // This handler, running on the UI thread, will be our server
-    private final Handler mHandler = new Handler(Looper.getMainLooper()) {
+    public  final Handler mHandler = new Handler(Looper.getMainLooper()) {
         public void handleMessage(Message msg) {
-            int what = msg.what ;
+            int what = msg.what;
+//            Handler sender = (Handler) msg.obj;
+//            if(sender == p1Handler){
+//                Log.i("MainActivity", "Received shot from player 1");
+//                processShot(PLAYER_1, msg.arg1);
+//                if(!gameOver){
+//                    sendTakeTurnMsg(PLAYER_2);
+//                }
+//            }
+//            else{
+//                Log.i("MainActivity", "Received shot from player 2");
+//                processShot(PLAYER_2, msg.arg1);
+//                if(!gameOver){
+//                    sendTakeTurnMsg(PLAYER_1);
+//                }
+//            }
+//            if(gameOver){
+//                notifyGameOver();
+//            }
             switch (what) {
-                case P1_SHOT:
-                    // TODO: Handle Player 1 shot
+                case P1_SHOT: {
+                    Log.i("MainActivity", "Received shot from player 1");
+                    processShot(PLAYER_1, msg.arg1);
+                    if(!gameOver){
+                        sendShotOutcome(PLAYER_1);
+                        sendTakeTurnMsg(PLAYER_2);
+                    }
                     break;
+                }
                 case P2_SHOT:
-                    // TODO: Handle Player 2 shot
+                    Log.i("MainActivity", "Received shot from player 2");
+                    processShot(PLAYER_2, msg.arg1);
+                    if(!gameOver){
+                        sendShotOutcome(PLAYER_2);
+                        sendTakeTurnMsg(PLAYER_1);
+                    }
                     break;
                 default:
                     // Do nothing
                     break;
             }
-
+            // Check if game is over and notify threads if so
+            if(gameOver){
+                notifyGameOver();
+            }
         }
-    }	; // Handler is associated with UI Thread
-    protected ArrayList<Integer> holeList;
-    private GolfAdapter golfAdapter;
-    private int winner;
-    private final Integer numHoles = 40;
-    private int p1Location = -1;
-    private int p2Location = - 1;
-    private boolean gameOver = false;
-
-    private int playerTurn = 1;
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,17 +109,112 @@ public class MainActivity extends AppCompatActivity {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
+        gridView = findViewById(R.id.gridview);
+        startNewGame();
+    }
 
-
+    private void startNewGame(){
         initHoles();
-        GridView gridview = findViewById(R.id.gridview);
         golfAdapter = new GolfAdapter(this, holeList);
-        gridview.setAdapter(golfAdapter);
+        gridView.setAdapter(golfAdapter);
+
+        // Start player threads
+        p1Thread = new PlayerThread(mHandler, PLAYER_1);
+        p2Thread = new PlayerThread(mHandler, PLAYER_2);
+
+        p1Thread.start();
+        p2Thread.start();
+
+        // Send first message to player1
         try {
-            testImageChange();
+            Thread.sleep(3000);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
+        
+        p1Handler = p1Thread.getHandler();
+        p2Handler = p2Thread.getHandler();
+        Message msg = p1Handler.obtainMessage(TAKE_TURN);
+        msg.obj = mHandler;
+        p1Handler.sendMessage(msg);
+    }
+
+    private void sendShotOutcome(int player){
+        Handler playerHandler;
+        int lastOutcome;
+        if(player == PLAYER_1){
+            playerHandler = p1Handler;
+            lastOutcome = p1LastOutcome;
+        }
+        else{
+            playerHandler = p2Handler;
+            lastOutcome = p2LastOutcome;
+        }
+        Message msg = playerHandler.obtainMessage(OUTCOME);
+        msg.arg1 = lastOutcome;
+        playerHandler.sendMessage(msg);
+    }
+
+    private void sendTakeTurnMsg(int nextPlayer){
+        Handler nextPlayerHandler;
+        if(nextPlayer == PLAYER_1){
+            nextPlayerHandler = p1Handler;
+        }
+        else{
+            nextPlayerHandler = p2Handler;
+        }
+        Message msg = nextPlayerHandler.obtainMessage(TAKE_TURN);
+        msg.obj = mHandler;
+        nextPlayerHandler.sendMessage(msg);
+    }
+
+    private void processShot(int player, int shotLoc){
+        if(player == PLAYER_1){
+            golfAdapter.setImage(p1Location, R.drawable.golf_hole);
+            if (shotLoc == p2Location){
+                golfAdapter.setImage(shotLoc, R.drawable.blue_catastrophe);
+                Log.i("processShot", "Blue catastrophe");
+                gameOver = true;
+            }
+            else if(shotLoc == winner){
+                golfAdapter.setImage(shotLoc, R.drawable.blue_win);
+                Log.i("processShot", "Blue win");
+                gameOver = true;
+            }
+            else{
+                golfAdapter.setImage(shotLoc, R.drawable.blue_hole);
+                Log.i("processShot", "Blue shot " + shotLoc);
+                p1Location = shotLoc;
+            }
+        }
+        else if (player == PLAYER_2){
+            golfAdapter.setImage(p2Location, R.drawable.golf_hole);
+            if (shotLoc == p1Location){
+                golfAdapter.setImage(shotLoc, R.drawable.red_catastrophe);
+                Log.i("processShot", "Red catastrophe");
+                gameOver = true;
+            }
+            else if(shotLoc == winner){
+                golfAdapter.setImage(shotLoc, R.drawable.red_win);
+                Log.i("processShot", "Red win");
+                gameOver = true;
+            }
+            else{
+                golfAdapter.setImage(shotLoc, R.drawable.red_hole);
+                Log.i("processShot", "Red shot " + shotLoc);
+                p2Location = shotLoc;
+            }
+        }
+        golfAdapter.notifyDataSetChanged();
+    }
+
+    private void notifyGameOver(){
+        Message msg1 = p1Handler.obtainMessage(GAME_OVER);
+        p1Handler.sendMessage(msg1);
+        msg1.obj = mHandler;
+        Message msg2 = p2Handler.obtainMessage(GAME_OVER);
+        msg2.obj = mHandler;
+        p2Handler.sendMessage(msg2);
     }
 
     @Override
@@ -93,35 +227,35 @@ public class MainActivity extends AppCompatActivity {
 //        }
     }
 
-    private void testImageChange() throws InterruptedException {
-
-        Runnable aRunnable = new Runnable() {
-            public void run() {
-                if(!gameOver){
-                    int nextShot = new Random().nextInt(numHoles);
-                    take_shot(nextShot, playerTurn);
-                    if(playerTurn == 1){
-                        playerTurn = 2;
-                    }
-                    else{
-                        playerTurn = 1;
-                    }
-                    Log.i("Thread t1", "Run iteration complete");
-                    try {
-                        Thread.sleep(500);
-                    } catch (InterruptedException e) {
-                        throw new RuntimeException(e);
-                    }
-                    run();
-                }
-                else{
-                    Log.i("Thread t1","Game Over!");
-                }
-            }
-        } ;
-        Thread t1 = new Thread(aRunnable);
-        t1.start();
-    }
+//    private void testImageChange() throws InterruptedException {
+//
+//        Runnable aRunnable = new Runnable() {
+//            public void run() {
+//                if(!gameOver){
+//                    int nextShot = new Random().nextInt(numHoles);
+//                    take_shot(nextShot, playerTurn);
+//                    if(playerTurn == 1){
+//                        playerTurn = 2;
+//                    }
+//                    else{
+//                        playerTurn = 1;
+//                    }
+//                    Log.i("Thread t1", "Run iteration complete");
+//                    try {
+//                        Thread.sleep(500);
+//                    } catch (InterruptedException e) {
+//                        throw new RuntimeException(e);
+//                    }
+//                    run();
+//                }
+//                else{
+//                    Log.i("Thread t1","Game Over!");
+//                }
+//            }
+//        } ;
+//        Thread t1 = new Thread(aRunnable);
+//        t1.start();
+//    }
 
     public void take_shot(int loc, int player) {
 
