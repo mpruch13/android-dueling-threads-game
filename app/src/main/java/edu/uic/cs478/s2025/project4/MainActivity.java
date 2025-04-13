@@ -18,36 +18,17 @@ import java.util.Random;
 
 
 public class MainActivity extends AppCompatActivity {
-    /// TODO: MAJOR ERROR - Don't initialize player positions to a valid location, this causes a catastrophe if a player's first shot happens to land on the other player's initial spot
     ///  TODO: Remember to tell threads not to call the opponent's runnable when the game is over
-    private int gameState = -1;
-    private static final int RESUME = 1;
-    protected static final int GAME_OVER = 0;
-    protected static final int PLAYER_1 = 1;
-    protected static final int PLAYER_2 = 2;
-    protected static final int P1_SHOT = 10;
-    protected static final int P2_SHOT = 20;
-    protected static final int TAKE_TURN = 50;
-    protected static final int OUTCOME = 60;
-    protected static final int OUTCOME_BIG_MISS = 11;
-    protected static final int OUTCOME_NEAR_GROUP = 12;
-    protected static final int OUTCOME_NEAR_MISS = 13;
-    protected static final int THREAD_READY = 100;
     private static PlayerThread p1Thread, p2Thread;
     private static Handler p1Handler, p2Handler;
-    private boolean p1Ready = false;
-    private  boolean p2Ready = true;
     protected ArrayList<Integer> holeList;
-
     private GridView gridView;
     private GolfAdapter golfAdapter;
     private int winningHole;
     private int winningGroup;
-    protected static final Integer NUM_HOLES = 40;
-    protected static final int GROUP_SIZE = 5;
     private int p1Location = -1;
-    private int p1LastOutcome = OUTCOME_BIG_MISS;
-    private int p2LastOutcome = OUTCOME_BIG_MISS;
+    private int p1LastOutcome = GameConstants.OUTCOME_BIG_MISS;
+    private int p2LastOutcome = GameConstants.OUTCOME_BIG_MISS;
     private int p2Location = - 1;
     protected static boolean gameOver = false;
 
@@ -56,23 +37,24 @@ public class MainActivity extends AppCompatActivity {
         public void handleMessage(Message msg) {
             int what = msg.what;
             switch (what) {
-                case P1_SHOT: {
+                case GameConstants.P1_SHOT: {
                     Log.i("MainActivity", "Received shot from player 1");
-                    processShot(PLAYER_1, msg.arg1);
+                    processShot(GameConstants.PLAYER_1, msg.arg1);
                     if(!gameOver){
-                        sendShotOutcome(PLAYER_1);
+                        sendShotOutcome(GameConstants.PLAYER_1);
                     }
                     break;
                 }
-                case P2_SHOT:
+                case GameConstants.P2_SHOT:
                     Log.i("MainActivity", "Received shot from player 2");
-                    processShot(PLAYER_2, msg.arg1);
+                    processShot(GameConstants.PLAYER_2, msg.arg1);
                     if(!gameOver){
-                        sendShotOutcome(PLAYER_2);
+                        sendShotOutcome(GameConstants.PLAYER_2);
                     }
                     break;
                 default:
-                    Log.e("MainActivity", "Received unknown/invalid message");
+                    Log.e("MainActivity", "Received unknown/invalid message: "
+                    + "\"" + what + "\"");
                     break;
             }
             // Check if game is over and notify threads if so
@@ -93,8 +75,6 @@ public class MainActivity extends AppCompatActivity {
             return insets;
         });
         gridView = findViewById(R.id.gridview);
-        p1Handler = null;
-        p2Handler = null;
         startNewGame();
     }
 
@@ -104,8 +84,8 @@ public class MainActivity extends AppCompatActivity {
         gridView.setAdapter(golfAdapter);
 
         // Creat and start player threads
-        p1Thread = new PlayerThread(mHandler, PLAYER_1);
-        p2Thread = new PlayerThread(mHandler, PLAYER_2);
+        p1Thread = new PlayerThread(mHandler, GameConstants.PLAYER_1);
+        p2Thread = new PlayerThread(mHandler, GameConstants.PLAYER_2);
         p1Thread.start();
         p2Thread.start();
 
@@ -133,7 +113,7 @@ public class MainActivity extends AppCompatActivity {
     private void sendShotOutcome(int player){
         Handler ph;
         int lastOutcome;
-        if(player == PLAYER_1){
+        if(player == GameConstants.PLAYER_1){
             ph = p1Handler;
             lastOutcome = p1LastOutcome;
         }
@@ -143,20 +123,20 @@ public class MainActivity extends AppCompatActivity {
             lastOutcome = p2LastOutcome;
         }
         Log.i("MainActivity", "sendShotOutcome: Sending player " + player + " outcome " + lastOutcome);
-        Message msg = ph.obtainMessage(OUTCOME);
+        Message msg = ph.obtainMessage(GameConstants.OUTCOME);
         msg.arg1 = lastOutcome;
         ph.sendMessageAtFrontOfQueue(msg);
     }
 
     private void sendTakeTurnMsg(int nextPlayer){
         Handler nextPlayerHandler;
-        if(nextPlayer == PLAYER_1){
+        if(nextPlayer == GameConstants.PLAYER_1){
             nextPlayerHandler = p1Handler;
         }
         else{
             nextPlayerHandler = p2Handler;
         }
-        Message msg = nextPlayerHandler.obtainMessage(TAKE_TURN);
+        Message msg = nextPlayerHandler.obtainMessage(GameConstants.TAKE_TURN);
         msg.obj = mHandler;
         nextPlayerHandler.sendMessage(msg);
     }
@@ -202,24 +182,24 @@ public class MainActivity extends AppCompatActivity {
 //    }
 
     private int getShotOutcome(int shotLoc){
-        int shotGroup = shotLoc / GROUP_SIZE;
+        int shotGroup = shotLoc / GameConstants.GROUP_SIZE;
         // Check if shot fell within winning group
         if (shotGroup == winningGroup){
-            return OUTCOME_NEAR_MISS;
+            return GameConstants.OUTCOME_NEAR_MISS;
         }
         // check if shot fell within adjacent group
         else if(shotGroup == winningGroup - 1 || shotGroup == winningGroup + 1){
-            return OUTCOME_NEAR_GROUP;
+            return GameConstants.OUTCOME_NEAR_GROUP;
         }
         // Any other outcome is big miss
         else{
-            return OUTCOME_BIG_MISS;
+            return GameConstants.OUTCOME_BIG_MISS;
         }
     }
 
     private void processShot(int player, int shotLoc){
         // Move player 1 shot location in UI, set outcome, and check for win/catastrophe
-        if(player == PLAYER_1){
+        if(player == GameConstants.PLAYER_1){
             p1LastOutcome = getShotOutcome(shotLoc);
             if(p1Location != -1) {
                 golfAdapter.setImage(p1Location, R.drawable.golf_hole);
@@ -241,7 +221,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         // Move player 2 shot location in UI, set outcome, and check for win/catastrophe
-        else if (player == PLAYER_2){
+        else if (player == GameConstants.PLAYER_2){
             p2LastOutcome = getShotOutcome(shotLoc);
             if(p2Location != -1){
                 golfAdapter.setImage(p2Location, R.drawable.golf_hole);
@@ -266,10 +246,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void notifyGameOver(){
-        Message msg1 = p1Handler.obtainMessage(GAME_OVER);
+        Message msg1 = p1Handler.obtainMessage(GameConstants.GAME_OVER);
         p1Handler.sendMessageAtFrontOfQueue(msg1);
         msg1.obj = mHandler;
-        Message msg2 = p2Handler.obtainMessage(GAME_OVER);
+        Message msg2 = p2Handler.obtainMessage(GameConstants.GAME_OVER);
         msg2.obj = mHandler;
         // Make sure game over message takes precedent
         p2Handler.sendMessageAtFrontOfQueue(msg2);
@@ -277,12 +257,12 @@ public class MainActivity extends AppCompatActivity {
 
     private void initHoles(){
         // Calculate the winning hole and the winning hole group
-        winningHole = new Random().nextInt(NUM_HOLES);
-        winningGroup = winningHole / GROUP_SIZE;
+        winningHole = new Random().nextInt(GameConstants.NUM_HOLES);
+        winningGroup = winningHole / GameConstants.GROUP_SIZE;
         // Create holeList. Initialize holes to default image and winning hole to winning image
-        holeList = new ArrayList<>(NUM_HOLES);
+        holeList = new ArrayList<>(GameConstants.NUM_HOLES);
         //boolean set_start = false;
-        for(int i = 0; i < NUM_HOLES; i++){
+        for(int i = 0; i < GameConstants.NUM_HOLES; i++){
             if(i != winningHole){
                 holeList.add(i, R.drawable.golf_hole);
 //                if(!set_start){

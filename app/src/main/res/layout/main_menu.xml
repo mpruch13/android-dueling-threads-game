@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/very_long_background"
+    android:orientation="vertical"
+    android:gravity="center_horizontal">
+
+    <TextView
+        android:id="@+id/textView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:fontFamily="sans-serif-medium"
+        android:paddingTop="50dp"
+        android:paddingBottom="70dp"
+        android:text="Welcome to Microgolf!"
+        android:textAlignment="center"
+        android:textColor="@color/white"
+        android:textSize="48sp"
+        android:typeface="monospace" />
+
+    <TextView
+        android:id="@+id/a_button_desc"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="180dp"
+        android:textColor="@color/white"
+        android:text="50 holes. 2 Threads. Only 1 can win."
+        android:textAlignment="center"
+        android:textSize="20sp" />
+
+    <Button
+        android:id="@+id/button"
+        android:layout_width="175dp"
+        android:layout_height="85dp"
+        android:layout_marginTop="15dp"
+        android:backgroundTint="#0B506D"
+        android:text="Start Game" />
+
+    <Button
+        android:id="@+id/button2"
+        android:layout_width="175dp"
+        android:layout_height="85dp"
+        android:layout_marginTop="25dp"
+        android:backgroundTint="#0B506D"
+        android:text="Exit" />
+</LinearLayout>
