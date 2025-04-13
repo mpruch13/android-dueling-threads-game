@@ -14,7 +14,7 @@
         android:fontFamily="sans-serif-medium"
         android:paddingTop="50dp"
         android:paddingBottom="70dp"
-        android:text="Welcome to Microgolf!"
+        android:text="@string/welcome"
         android:textAlignment="center"
         android:textColor="@color/white"
         android:textSize="48sp"
@@ -26,7 +26,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="180dp"
         android:textColor="@color/white"
-        android:text="50 holes. 2 Threads. Only 1 can win."
+        android:text="@string/main_menu_message"
         android:textAlignment="center"
         android:textSize="20sp" />
 
@@ -36,7 +36,7 @@
         android:layout_height="85dp"
         android:layout_marginTop="15dp"
         android:backgroundTint="#0B506D"
-        android:text="Start Game" />
+        android:text="@string/main_start_button" />
 
     <Button
         android:id="@+id/button2"
@@ -44,5 +44,5 @@
         android:layout_height="85dp"
         android:layout_marginTop="25dp"
         android:backgroundTint="#0B506D"
-        android:text="Exit" />
+        android:text="@string/main_exit_button" />
 </LinearLayout>

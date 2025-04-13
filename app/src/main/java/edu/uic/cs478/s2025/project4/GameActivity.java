@@ -1,7 +1,5 @@
 package edu.uic.cs478.s2025.project4;
 
-import android.app.Dialog;
-import android.content.DialogInterface;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -11,20 +9,18 @@ import android.widget.GridView;
 
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
-import androidx.fragment.app.DialogFragment;
+import androidx.fragment.app.FragmentManager;
 import androidx.lifecycle.ViewModelProvider;
 
 import java.util.ArrayList;
 import java.util.Random;
 
 
-public class GameActivity extends AppCompatActivity {
-    ///  TODO: Remember to tell threads not to call the opponent's runnable when the game is over
+public class GameActivity extends AppCompatActivity implements  EndGameDialogFragment.EndGameDialogListener {
     private PlayerThread p1Thread, p2Thread;
     private Handler p1Handler, p2Handler;
     private GameViewModel threadViewModel;
@@ -36,13 +32,14 @@ public class GameActivity extends AppCompatActivity {
     private GolfAdapter golfAdapter;
     private int winningHole;
     private int winningGroup;
+    private int endGameStatus = -1;
     private int p1Location = -1;
     private int p2Location = - 1;
     private int p1LastOutcome = GameConstants.OUTCOME_BIG_MISS;
     private int p2LastOutcome = GameConstants.OUTCOME_BIG_MISS;
     private int lastPlayer = 0;
     protected boolean gameOver = false;
-
+    FragmentManager mFragmentManager;
 
     // For saving to/restoring from  bundle
     private final String WINNING_HOLE = "winning hole";
@@ -81,8 +78,8 @@ public class GameActivity extends AppCompatActivity {
             }
             // Check if game is over and notify threads if so
             if(gameOver){
-                //endgame();
-                notifyGameOver();
+                endGame();
+                //notifyGameOver();
             }
         }
     };
@@ -100,6 +97,7 @@ public class GameActivity extends AppCompatActivity {
         gridView = findViewById(R.id.gridview);
         gridView.setSelector(android.R.color.transparent);
         threadViewModel = new ViewModelProvider(this).get(GameViewModel.class);
+        mFragmentManager = getSupportFragmentManager();
         // If no savedInstanceState, start a new game
         if (savedInstanceState == null){
             startNewGame();
@@ -202,6 +200,7 @@ public class GameActivity extends AppCompatActivity {
         p2LastOutcome = GameConstants.OUTCOME_BIG_MISS;
         lastPlayer = 0;
         gameOver = false;
+        endGameStatus = -1;
     }
     private void startNewGame(){
         Log.i("GameActivity", "in startNewGame()!");
@@ -223,19 +222,7 @@ public class GameActivity extends AppCompatActivity {
         threadViewModel.setP1Thread(p1Thread);
         threadViewModel.setP2Thread(p2Thread);
 
-//        // Probably not the ideal way to do this, but it shouldn't take more than a few milliseconds
-//        int p1Iterations = 0;
-//        int p2Iterations = 0;
-//        while(p1Handler == null){
-//            p1Handler = p1Thread.getHandler();
-//            p1Iterations++;
-//        }
-//        while(p2Handler == null){
-//            p2Iterations++;
-//            p2Handler = p2Thread.getHandler();
-//        }
-//        Log.i("MainActivity", "Waiting for p1 Handler took " + p1Iterations + " iterations");
-//        Log.i("MainActivity", "Waiting for p2 Handler took " + p2Iterations + " iterations");
+        // Probably not the ideal way to do this, but it shouldn't take more than a few milliseconds
         long p1StartTime = System.currentTimeMillis();
         while (p1Handler == null) {
             p1Handler = p1Thread.getHandler();
@@ -256,7 +243,29 @@ public class GameActivity extends AppCompatActivity {
     }
 
     private void endGame(){
+        notifyGameOver();
 
+        int dialogMsg;
+        switch (endGameStatus){
+            case GameConstants.THREAD_1_VICTORY:
+                dialogMsg = R.string.thread1_win;
+                break;
+            case GameConstants.THREAD_1_CAT:
+                dialogMsg = R.string.thread1_catastrophe;
+                break;
+            case GameConstants.THREAD_2_VICTORY:
+                dialogMsg = R.string.thread2_win;
+                break;
+            case GameConstants.THREAD_2_CAT:
+                dialogMsg = R.string.thread2_catastrophe;
+                break;
+            default:
+                Log.e("GameActivity", "Game ended without endGameStatus set");
+                dialogMsg = R.string.default_dialog_message;
+        }
+
+        EndGameDialogFragment endGameFragment = EndGameDialogFragment.newInstance(dialogMsg);
+        endGameFragment.show(mFragmentManager, "END_GAME_DIALOG");
     }
 
     private void sendShotOutcome(int player){
@@ -355,13 +364,15 @@ public class GameActivity extends AppCompatActivity {
             }
             if (shotLoc == p2Location){
                 golfAdapter.setImage(shotLoc, R.drawable.blue_catastrophe);
-                Log.i("processShot", "Blue catastrophe");
+                Log.i("processShot", "Player 1 catastrophe");
                 gameOver = true;
+                endGameStatus = GameConstants.THREAD_1_CAT;
             }
             else if(shotLoc == winningHole){
                 golfAdapter.setImage(shotLoc, R.drawable.blue_win);
-                Log.i("processShot", "Blue win");
+                Log.i("processShot", "Player 1 win");
                 gameOver = true;
+                endGameStatus = GameConstants.THREAD_1_VICTORY;
             }
             else{
                 golfAdapter.setImage(shotLoc, R.drawable.blue_hole);
@@ -377,17 +388,19 @@ public class GameActivity extends AppCompatActivity {
             }
             if (shotLoc == p1Location){
                 golfAdapter.setImage(shotLoc, R.drawable.red_catastrophe);
-                Log.i("processShot", "Red catastrophe");
+                Log.i("processShot", "Player 2 catastrophe");
                 gameOver = true;
+                endGameStatus = GameConstants.THREAD_2_CAT;
             }
             else if(shotLoc == winningHole){
                 golfAdapter.setImage(shotLoc, R.drawable.red_win);
-                Log.i("processShot", "Red win");
+                Log.i("processShot", "Player 2 win");
                 gameOver = true;
+                endGameStatus = GameConstants.THREAD_2_VICTORY;
             }
             else{
                 golfAdapter.setImage(shotLoc, R.drawable.red_hole);
-                Log.i("processShot", "Red shot " + shotLoc);
+                Log.i("processShot", "Player 2 shot " + shotLoc);
                 p2Location = shotLoc;
             }
         }
@@ -420,216 +433,13 @@ public class GameActivity extends AppCompatActivity {
         }
     }
 
-//    private void restoreHoles(){
-//        // Create holeList. Initialize holes to default image and winning hole to winning image
-//        initHoleList = new ArrayList<>(GameConstants.NUM_HOLES);
-//        for(int i = 0; i < GameConstants.NUM_HOLES; i++){
-//            if(i == winningHole){
-//               // Log.i("GameActivity", "Adding winning hole to list at i = " + i);
-//                initHoleList.add(i, R.drawable.winning_hole);
-//            }
-//            else if (i == p1Location){
-//              //  Log.i("GameActivity", "Adding blue to hole list at i = " + i);
-//                initHoleList.add(i, R.drawable.blue_hole);
-//            }
-//            else if (i == p2Location){
-//                //Log.i("GameActivity", "Adding red to hole list at i = " + i);
-//                initHoleList.add(i, R.drawable.red_hole);
-//            }
-//            else{
-//               // Log.i("GameActivity", "Adding regular hole to list at i = " + i);
-//                initHoleList.add(i, R.drawable.golf_hole);
-//            }
-//        }
-//    }
-
     @Override
-    protected void onResume() {
-        super.onResume();
-//        try {
-//            testImageChange();
-//        } catch (InterruptedException e) {
-//            throw new RuntimeException(e);
-//        }
+    public void onStartNewGame() {
+        startNewGame();
     }
 
-//    private void testImageChange() throws InterruptedException {
-//
-//        Runnable aRunnable = new Runnable() {
-//            public void run() {
-//                if(!gameOver){
-//                    int nextShot = new Random().nextInt(numHoles);
-//                    take_shot(nextShot, playerTurn);
-//                    if(playerTurn == 1){
-//                        playerTurn = 2;
-//                    }
-//                    else{
-//                        playerTurn = 1;
-//                    }
-//                    Log.i("Thread t1", "Run iteration complete");
-//                    try {
-//                        Thread.sleep(500);
-//                    } catch (InterruptedException e) {
-//                        throw new RuntimeException(e);
-//                    }
-//                    run();
-//                }
-//                else{
-//                    Log.i("Thread t1","Game Over!");
-//                }
-//            }
-//        } ;
-//        Thread t1 = new Thread(aRunnable);
-//        t1.start();
-//    }
-
-//    public void take_shot(int loc, int player) {
-//
-//        //  The display of the picture must be executed on the UI thread
-//        //  One can use runOnUiThread() to make this happen
-//        runOnUiThread(() -> {
-//            // No data race with the UI thread on mImageView, but careful
-//            // with mBitmap!
-//            int old_image = (int) golfAdapter.getItemId(loc);
-//            if(player == 1){
-//                golfAdapter.setImage(p1Location, R.drawable.golf_hole);
-//                if (old_image == R.drawable.red_hole){
-//                    golfAdapter.setImage(loc, R.drawable.blue_catastrophe);
-//                    Log.i("take_shot", "Blue catastrophe");
-//                    gameOver = true;
-//                }
-//                else if(old_image == R.drawable.winning_hole){
-//                    golfAdapter.setImage(loc, R.drawable.blue_win);
-//                    Log.i("take_shot", "Blue win");
-//                    gameOver = true;
-//                }
-//                else{
-//                    golfAdapter.setImage(loc, R.drawable.blue_hole);
-//                    p1Location = loc;
-//                }
-//            }
-//            else{
-//                golfAdapter.setImage(p2Location, R.drawable.golf_hole);
-//                if (old_image == R.drawable.blue_hole){
-//                    golfAdapter.setImage(loc, R.drawable.red_catastrophe);
-//                    Log.i("take_shot", "Red catastrophe");
-//                    gameOver = true;
-//                }
-//                else if(old_image == R.drawable.winning_hole){
-//                    golfAdapter.setImage(loc, R.drawable.red_win);
-//                    Log.i("take_shot", "Red win");
-//                    gameOver = true;
-//                }
-//                else{
-//                    golfAdapter.setImage(loc, R.drawable.red_hole);
-//                    p2Location = loc;
-//                }
-//            }
-//            golfAdapter.notifyDataSetChanged();
-//        });
-//    }
-
-
-
-    // This handler, running on the UI thread, will be our server
-//        private final Handler mHandler = new Handler(Looper.getMainLooper()) {
-//            public void handleMessage(Message msg) {
-//                int what = msg.what ;
-//                switch (what) {
-//                    case MainActivity.PLAYER_1:
-//                        // Take Turn
-//                        break;
-//                    case GAME_OVER:
-//                        // TODO: stop thread
-//                        break;
-//                    default:
-//                        // Do nothing
-//                        break;
-//                }
-//
-//            }
-//        }	; // Handler is associated with UI Thread
-
-//        public void run() {
-//
-//            // Get a message instance with target set to UI thread's message queue
-//            Message msg = mHandler.obtainMessage(HandleMessageActivity.SET_PROGRESS_VISIBLE) ;
-//            mHandler.sendMessage(msg) ;
-//
-//            // again, arg1 shows current progress
-//            msg = mHandler.obtainMessage(POST_PROGRESS) ;
-//            msg.arg1 = 0 ;
-//            mHandler.sendMessage(msg) ;
-//
-//            try { Thread.sleep(2000); }
-//            catch (InterruptedException e) { System.out.println("Thread interrupted!") ; }
-//
-//            // and again, arg1 shows current progress
-//            msg = mHandler.obtainMessage(POST_PROGRESS) ;
-//            msg.arg1 = 25 ;
-//            mHandler.sendMessage(msg) ;
-//
-//            try { Thread.sleep(2000); }
-//            catch (InterruptedException e) { System.out.println("Thread interrupted!") ; }
-//
-//            // and again, arg1 shows current progress
-//            msg = mHandler.obtainMessage(POST_PROGRESS) ;
-//            msg.arg1 = 50 ;
-//            // UB 3/17/2021 -- Try sendToTarget() this time
-//            // mHandler.sendMessage(msg) ;
-//            msg.sendToTarget() ;
-//
-//            try { Thread.sleep(2000); }
-//            catch (InterruptedException e) { System.out.println("Thread interrupted!") ; }
-//
-//            // and again, arg1 shows current progress
-//            msg = mHandler.obtainMessage(POST_PROGRESS) ;
-//            msg.arg1 = 75 ;
-//            // UB 3/17/2021 -- Try sendToTarget() again
-//
-//            // mHandler.sendMessage(msg) ;
-//            msg.sendToTarget() ;
-//
-//            // download bitmap
-//            Bitmap b = null ;
-//            try {
-//                String urlString = "https://pictures.topspeed.com/IMG/crop/200512/2003-ferrari-enzo-40_600x0w.jpg";
-//                URL aUrl = new URL(urlString) ;   // This could raise malformed URL exception
-//                b = BitmapFactory.decodeStream((InputStream) aUrl.getContent()) ;
-//            }
-//            catch (Exception e) {System.out.println("Could not read image from web!") ; }
-//
-//            // Get message to UI's queue, send bitmap along with message
-//            msg = mHandler.obtainMessage(UPDATE_IMAGE_VIEW) ;
-//            msg.obj = b;
-//            mHandler.sendMessage(msg) ;
-//
-//            // This message will be queued after previous message
-//            msg = mHandler.obtainMessage(SET_PROGRESS_INVISIBLE) ;
-//            mHandler.sendMessage(msg) ;
-//        }
-
-//    public class EndGameDialog extends DialogFragment {
-//        @NonNull
-//        @Override
-//        public Dialog onCreateDialog(Bundle savedInstanceState) {
-//            // Use the Builder class for convenient dialog construction.
-//            AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
-//            builder.setMessage("Game Over!")
-//                    .setPositiveButton("New Game", new DialogInterface.OnClickListener() {
-//                        public void onClick(DialogInterface dialog, int id) {
-//                            // START THE GAME!
-//                        }
-//                    })
-//                    .setNegativeButton("Quit to Menu", new DialogInterface.OnClickListener() {
-//                        public void onClick(DialogInterface dialog, int id) {
-//                            startNewGame();
-//                        }
-//                    });
-//            // Create the AlertDialog object and return it.
-//            return builder.create();
-//        }
-//    }
-
-
+    @Override
+    public void onQuit() {
+        finish();
+    }
 }

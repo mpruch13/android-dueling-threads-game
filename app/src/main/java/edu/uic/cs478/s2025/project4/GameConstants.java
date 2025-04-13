@@ -1,9 +1,19 @@
 package edu.uic.cs478.s2025.project4;
 
 public class GameConstants {
-    protected static final int GAME_OVER = -2;
-    protected static final int GAME_PAUSED = -1;
+
+    // Game status
     protected static final int GAME_RESUMED = 0;
+    protected static final int GAME_PAUSED = 3;
+    protected static final int GAME_OVER = 4;
+
+    // Game results
+    protected static final int THREAD_1_VICTORY = 5;
+    protected static final int THREAD_1_CAT = 6;
+    protected static final int THREAD_2_VICTORY = 7;
+    protected static final int THREAD_2_CAT = 8;
+
+    // Players and shot outcomes
     protected static final int PLAYER_1 = 1;
     protected static final int PLAYER_2 = 2;
     protected static final int P1_SHOT = 10;
