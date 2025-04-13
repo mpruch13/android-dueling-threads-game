@@ -16,19 +16,26 @@ public class PlayerThread extends Thread {
 
     private final ArrayList<Integer> previousShots = new ArrayList<>();
     private Handler mHandler;
-    private final Handler mainHandler;
-    private Handler OpponentHandler;
+    private Handler mainHandler;
+    private Handler opponentHandler;
     private PlayerThread opponent;
     private int lastOutcome = GameConstants.OUTCOME_BIG_MISS; // start with random shot always
     private int lastGroup = -1;
-    private int lastShot = -1;
     private final int iAm;
-    private boolean gameOver = false;
+
+    private boolean paused = false;
 
     PlayerThread(Handler mainHandler, int iAm){
         this.mainHandler = mainHandler;
         this.iAm = iAm;
     }
+
+//    PlayerThread(Handler mainHandler, int iAm, int lastOutcome, ArrayList<Integer> previousShots ){
+//        this.mainHandler = mainHandler;
+//        this.iAm = iAm;
+//        this.lastOutcome = lastOutcome;
+//        this.
+//    }
 
     public void run() {
         Log.i("PlayerThread", "Player " + iAm + " starting");
@@ -44,26 +51,36 @@ public class PlayerThread extends Thread {
                         break;
                     case GameConstants.GAME_OVER:
                         Log.i("PlayerThread", "Player " + iAm + " received game over message. Quitting thread.");
-                        gameOver = true;
-                        getLooper().quitSafely();
+                        mHandler.removeCallbacksAndMessages(null);
+                        getLooper().quit();
                         break;
+                    case GameConstants.GAME_PAUSED:
+                        paused = true;
+                        mHandler.removeCallbacks(myTurnRunnable);
+                        Log.i("PlayerThread", "Player " + iAm + " received pause message. Pausing thread.");
+                        break;
+                    case GameConstants.GAME_RESUMED:
+                        paused = false;
+                        Log.i("PlayerThread", "Player " + iAm + " received resume message. Resuming game thread.");
+                        break;
+
                     default:
                         // Do nothing
                         break;
                 }
             }
         };
-        // Wait until main thread gives us an opponent and until the opponent's handler is ready'
+        // Wait until main thread gives us an opponent and then wait until the opponent's handler is ready'
         Log.i("PlayerThread", "Player " + iAm + " waiting for opponent");
-        while (opponent == null || OpponentHandler == null) {
-            // wait for a bit
+        while (opponent == null || opponentHandler == null) {
+            // wait for a short amount of time (should hopefully let the OS switch to a different thread right away instead of wasting cycles with useless looping)
             try {
-                Thread.sleep(10);
+                Thread.sleep(5);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
             if(opponent != null){
-                OpponentHandler = opponent.getHandler();
+                opponentHandler = opponent.getHandler();
             }
 
         }
@@ -73,10 +90,10 @@ public class PlayerThread extends Thread {
 
     private final Runnable myTurnRunnable = new Runnable() {
             public void run() {
-                // Don't run if game is over
-//                if(MainActivity.gameOver){
-//                    return;
-//                }
+                // Don't run if paused
+                if(paused){
+                    return;
+                }
                 Message msg;
                 if(iAm == GameConstants.PLAYER_1){
                     msg = mainHandler.obtainMessage(GameConstants.P1_SHOT);
@@ -85,20 +102,23 @@ public class PlayerThread extends Thread {
                     msg = mainHandler.obtainMessage(GameConstants.P2_SHOT);
                 }
 
+                // Player 1 Strat: Take random shots after every near miss, take close group shots after every near group,
+                //                 and take same group shots after every near miss. Slowly hones in on the winning hole,
+                // but can be thrown off
                 switch (lastOutcome) {
                     case GameConstants.OUTCOME_BIG_MISS:
                         msg.arg1 = randomShot();
                         Log.i("Player Thread","Player " + iAm +  " taking random shot."
-                                + "\nLast group: " + lastGroup + "\nLast Outcome: " + lastOutcome);
+                                + "\nLast group: " + lastGroup + "\nLast Outcome: Big miss");
                         break;
                     case GameConstants.OUTCOME_NEAR_GROUP:
                         msg.arg1 = closeGroupShot();
                         Log.i("Player Thread", "Player " + iAm + " taking near group shot."
-                                + "\nLast group: " + lastGroup + "\nLast Outcome: " + lastOutcome);
+                                + "\nLast group: " + lastGroup + "\nLast Outcome: Near group");
                         break;
                     case GameConstants.OUTCOME_NEAR_MISS:
                         Log.i("Player Thread", "Player " + iAm + " taking same group shot."
-                                + "\nLast group: " + lastGroup + "\nLast Outcome: " + lastOutcome);
+                                + "\nLast group: " + lastGroup + "\nLast Outcome: Near miss");
                         msg.arg1 = sameGroupShot();
                         break;
                     default:
@@ -106,11 +126,9 @@ public class PlayerThread extends Thread {
                                 + " received an invalid outcome value: " + lastOutcome + "  Taking random shot");
                         msg.arg1 = randomShot();
                     }
+                // Send shot to UI thread and post opponent's runnable with a 2 second delay
                 mainHandler.sendMessage(msg);
-                // Sleep for 2 seconds before sending runnable to other thread
-//                if(!MainActivity.gameOver){
-                    OpponentHandler.postDelayed(opponent.getTurnRunnable(), 2000);
-//                }
+                opponentHandler.postDelayed(opponent.getTurnRunnable(), 2000);
             }
         } ;
 
@@ -124,6 +142,10 @@ public class PlayerThread extends Thread {
 
     protected void setOpponent(PlayerThread opponent){
         this.opponent = opponent;
+    }
+
+    protected void setMainHandler(Handler mainHandler){
+        this.mainHandler = mainHandler;
     }
 
 //    private void takeTurn(){
@@ -232,8 +254,9 @@ public class PlayerThread extends Thread {
 
     private int targetHoleShot(int target){
         if(previousShots.contains(target)){
-            //TODO: decide what to do if
-            return target;
+            Log.i("PlayerThread", "Player " + iAm + " tried a targeted shot on a hole they already shot in!"
+                        + "Taking random shot instead!");
+            return randomShot();
         }
         else{
             return target;

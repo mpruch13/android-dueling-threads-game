@@ -17,17 +17,14 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.ImageView;
-import android.widget.TextView;
 
-import androidx.appcompat.widget.LinearLayoutCompat;
-
-import java.util.List;
+import java.util.ArrayList;
 
 public class GolfAdapter extends BaseAdapter {
 
     // Fields for context and resource ids.
     private Context mContext;
-    private List<Integer> holes;
+    private ArrayList<Integer> mHoles;
 
 
     /**
@@ -36,27 +33,31 @@ public class GolfAdapter extends BaseAdapter {
      * @param  c Context from the activity that is creating this adapter
      * @param  holeList An ArrayList containing the res ids of car thumbnail images
      */
-    public GolfAdapter(Context c, List<Integer> holeList){
+    public GolfAdapter(Context c, ArrayList<Integer> holeList){
         mContext = c;
-        this.holes = holeList;
+        this.mHoles = holeList;
     }
 
     @Override
     public int getCount() {
-        return holes.size();
+        return mHoles.size();
     }
 
     @Override
     public Object getItem(int position) {
-        return holes.get(position);
+        return mHoles.get(position);
     }
 
     @Override
-    public long getItemId(int position) {return holes.get(position); }
+    public long getItemId(int position) {return mHoles.get(position); }
+
+    public ArrayList<Integer> getResourceList(){
+        return mHoles;
+    }
 
     public long setImage(int pos, Integer newResId){
         long oldID = getItemId(pos);
-        holes.set(pos, newResId);
+        mHoles.set(pos, newResId);
         return oldID;
     }
 
@@ -79,7 +80,7 @@ public class GolfAdapter extends BaseAdapter {
         }
 
         // Put data (actual image reference) in imageView + return it
-        golfHoleView.setImageResource(holes.get(position));
+        golfHoleView.setImageResource(mHoles.get(position));
         return golfHoleView;
     }
 }
