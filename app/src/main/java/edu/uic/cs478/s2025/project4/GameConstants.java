@@ -24,6 +24,10 @@ public class GameConstants {
     protected static final int OUTCOME_NEAR_GROUP = 62;
     protected static final int OUTCOME_NEAR_MISS = 63;
 
+    // Player Thread Strategies
+    protected static final int STRAT_BASIC = 70;
+    protected static final int STRAT_AGGRESSIVE = 71;
+
     // Number of holes and group size
     // Game should work with any number of holes as long as
     // it can be evenly divided by group size (i.e., every group must have the same number of holes)

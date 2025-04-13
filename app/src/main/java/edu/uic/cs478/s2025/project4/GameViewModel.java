@@ -26,7 +26,7 @@ public class GameViewModel extends ViewModel {
     @Override
     protected void onCleared() {
         super.onCleared();
-        // Tell threads the game is over if they haven't been informed already (if the player ends the game before it ends on it's own)
+        // Tell threads the game is over if they haven't been informed already
         if (p1Thread.isAlive()) {
             Handler p1Handler = p1Thread.getHandler();
             Message msg1 = p1Handler.obtainMessage(GameConstants.GAME_OVER);

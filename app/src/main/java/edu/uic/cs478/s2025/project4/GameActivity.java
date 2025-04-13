@@ -41,12 +41,12 @@ public class GameActivity extends AppCompatActivity implements  EndGameDialogFra
     protected boolean gameOver = false;
     FragmentManager mFragmentManager;
 
-    // For saving to/restoring from  bundle
+    // Keys for saving to/restoring from  bundle
     private final String WINNING_HOLE = "winning hole";
-    private final String P1_LOC = "player 1 loc";
-    private final String P2_LOC = "player 2 loc";
+    private final String P1_LOC = "p1 loc";
+    private final String P2_LOC = "p2 loc";
     private final String LAST_PLAYER = "last player";
-    private final String GAME_OVER = "gameover";
+    private final String GAME_OVER = "game over";
     private final String HOLE_LIST = "hole list";
 
     // This handler, running on the UI thread, will be our server
@@ -210,8 +210,8 @@ public class GameActivity extends AppCompatActivity implements  EndGameDialogFra
         gridView.setAdapter(golfAdapter);
 
         // Create and start player threads
-        p1Thread = new PlayerThread(mHandler, GameConstants.PLAYER_1);
-        p2Thread = new PlayerThread(mHandler, GameConstants.PLAYER_2);
+        p1Thread = new PlayerThread(mHandler, GameConstants.PLAYER_1, GameConstants.STRAT_BASIC);
+        p2Thread = new PlayerThread(mHandler, GameConstants.PLAYER_2, GameConstants.STRAT_AGGRESSIVE);
         p1Thread.start();
         p2Thread.start();
 
@@ -238,8 +238,8 @@ public class GameActivity extends AppCompatActivity implements  EndGameDialogFra
         Log.i("MainActivity", "Waiting for p1 Handler took " + (p1EndTime - p1StartTime) + " ms");
         Log.i("MainActivity", "Waiting for p2 Handler took " + (p2EndTime - p2StartTime) + " ms");
 
-        // Tell p1Thread to start (delay by 3 seconds to give use time to see starting board
-        p1Handler.postDelayed(p1Thread.getTurnRunnable(), 3000);
+        // Tell p1Thread to start with a 2 second delay
+        p1Handler.postDelayed(p1Thread.getTurnRunnable(), 2000);
     }
 
     private void endGame(){
@@ -276,7 +276,6 @@ public class GameActivity extends AppCompatActivity implements  EndGameDialogFra
             lastOutcome = p1LastOutcome;
         }
         else{
-            Log.i("MainActivity", "sendShotOutcome: in else!");
             ph = p2Handler;
             lastOutcome = p2LastOutcome;
         }
@@ -341,6 +340,7 @@ public class GameActivity extends AppCompatActivity implements  EndGameDialogFra
 
     private int getShotOutcome(int shotLoc){
         int shotGroup = shotLoc / GameConstants.GROUP_SIZE;
+        Log.i("GameActivity", "getShotOutcome: Shot fell into group " + shotGroup);
         // Check if shot fell within winning group
         if (shotGroup == winningGroup){
             return GameConstants.OUTCOME_NEAR_MISS;

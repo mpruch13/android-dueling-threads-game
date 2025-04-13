@@ -19,23 +19,30 @@ public class PlayerThread extends Thread {
     private Handler mainHandler;
     private Handler opponentHandler;
     private PlayerThread opponent;
+    private Runnable myTurnRunnable;
     private int lastOutcome = GameConstants.OUTCOME_BIG_MISS; // start with random shot always
     private int lastGroup = -1;
     private final int iAm;
-
     private boolean paused = false;
+    private boolean firstShot = true;
 
-    PlayerThread(Handler mainHandler, int iAm){
+    private int aggressiveDirection = 1;
+
+    PlayerThread(Handler mainHandler, int iAm, int strategy){
         this.mainHandler = mainHandler;
         this.iAm = iAm;
-    }
 
-//    PlayerThread(Handler mainHandler, int iAm, int lastOutcome, ArrayList<Integer> previousShots ){
-//        this.mainHandler = mainHandler;
-//        this.iAm = iAm;
-//        this.lastOutcome = lastOutcome;
-//        this.
-//    }
+        switch (strategy){
+            case GameConstants.STRAT_AGGRESSIVE:
+                myTurnRunnable = aggressiveStrategy;
+                Log.i("PlayerThread", "Player " + iAm + " initialized with Aggressive Strategy");
+                break;
+            default:
+                myTurnRunnable = basicStrategy;
+                Log.i("PlayerThread", "Player " + iAm + " initialized with Basic Strategy");
+                break;
+        }
+    }
 
     public void run() {
         Log.i("PlayerThread", "Player " + iAm + " starting");
@@ -63,9 +70,8 @@ public class PlayerThread extends Thread {
                         paused = false;
                         Log.i("PlayerThread", "Player " + iAm + " received resume message. Resuming game thread.");
                         break;
-
                     default:
-                        // Do nothing
+                        Log.e("PlayerThread", "Player " + iAm + " received unknown message.");
                         break;
                 }
             }
@@ -88,50 +94,6 @@ public class PlayerThread extends Thread {
         Looper.loop();
     }
 
-    private final Runnable myTurnRunnable = new Runnable() {
-            public void run() {
-                // Don't run if paused
-                if(paused){
-                    return;
-                }
-                Message msg;
-                if(iAm == GameConstants.PLAYER_1){
-                    msg = mainHandler.obtainMessage(GameConstants.P1_SHOT);
-                }
-                else{
-                    msg = mainHandler.obtainMessage(GameConstants.P2_SHOT);
-                }
-
-                // Player 1 Strat: Take random shots after every near miss, take close group shots after every near group,
-                //                 and take same group shots after every near miss. Slowly hones in on the winning hole,
-                // but can be thrown off
-                switch (lastOutcome) {
-                    case GameConstants.OUTCOME_BIG_MISS:
-                        msg.arg1 = randomShot();
-                        Log.i("Player Thread","Player " + iAm +  " taking random shot."
-                                + "\nLast group: " + lastGroup + "\nLast Outcome: Big miss");
-                        break;
-                    case GameConstants.OUTCOME_NEAR_GROUP:
-                        msg.arg1 = closeGroupShot();
-                        Log.i("Player Thread", "Player " + iAm + " taking near group shot."
-                                + "\nLast group: " + lastGroup + "\nLast Outcome: Near group");
-                        break;
-                    case GameConstants.OUTCOME_NEAR_MISS:
-                        Log.i("Player Thread", "Player " + iAm + " taking same group shot."
-                                + "\nLast group: " + lastGroup + "\nLast Outcome: Near miss");
-                        msg.arg1 = sameGroupShot();
-                        break;
-                    default:
-                        Log.e("Player Thread", "Player " + iAm
-                                + " received an invalid outcome value: " + lastOutcome + "  Taking random shot");
-                        msg.arg1 = randomShot();
-                    }
-                // Send shot to UI thread and post opponent's runnable with a 2 second delay
-                mainHandler.sendMessage(msg);
-                opponentHandler.postDelayed(opponent.getTurnRunnable(), 2000);
-            }
-        } ;
-
     protected Runnable getTurnRunnable(){
         return myTurnRunnable;
     }
@@ -148,32 +110,13 @@ public class PlayerThread extends Thread {
         this.mainHandler = mainHandler;
     }
 
-//    private void takeTurn(){
-//        // Sleep for 2 seconds
-//        try {
-//            Thread.sleep(2000);
-//        } catch (InterruptedException e) {
-//            throw new RuntimeException(e);
-//        }
-//        Message msg;
-//        if(iAm == GameConstants.PLAYER_1){
-//           msg = mainHandler.obtainMessage(GameConstants.P1_SHOT);
-//        }
-//        else{
-//            msg = mainHandler.obtainMessage(GameConstants.P2_SHOT);
-//        }
-//        msg.arg1 = randomShot();
-//        msg.obj = mHandler;
-//        mainHandler.sendMessage(msg);
-//    }
-
     private int randomShot(){
         int nextShot;
         do{
             nextShot = new Random().nextInt(GameConstants.NUM_HOLES);
         }while(previousShots.contains(nextShot));
-        previousShots.add(nextShot);
-        lastGroup = nextShot / GameConstants.GROUP_SIZE;
+        //previousShots.add(nextShot);
+        // lastGroup = nextShot / GameConstants.GROUP_SIZE;
         return nextShot;
     }
 
@@ -188,8 +131,8 @@ public class PlayerThread extends Thread {
             // (e.g,. if we want group 2: the lower bound is 0 + 10 = 10, and upper bound is 4 + 10 = 14)
             nextShot = new Random().nextInt(GameConstants.GROUP_SIZE) + groupMin;
         }while(previousShots.contains(nextShot));
-        previousShots.add(nextShot);
-        lastGroup = nextShot / GameConstants.GROUP_SIZE;
+        // previousShots.add(nextShot);
+        // lastGroup = nextShot / GameConstants.GROUP_SIZE;
         return nextShot;
     }
 
@@ -220,8 +163,8 @@ public class PlayerThread extends Thread {
             nextShot = getCloseGroupHole(shotOffset,lowerGroupMin,upperGroupMin);
 
         }while(previousShots.contains(nextShot));
-        previousShots.add(nextShot);
-        lastGroup = nextShot / GameConstants.GROUP_SIZE;
+        // previousShots.add(nextShot);
+        // lastGroup = nextShot / GameConstants.GROUP_SIZE;
         return nextShot;
     }
 
@@ -253,8 +196,10 @@ public class PlayerThread extends Thread {
     }
 
     private int targetHoleShot(int target){
+        // For debugging. Ideally should never see this message since player threads should never try to
+        // shoot in a hole they already previously shot in
         if(previousShots.contains(target)){
-            Log.i("PlayerThread", "Player " + iAm + " tried a targeted shot on a hole they already shot in!"
+            Log.e("PlayerThread", "Player " + iAm + " tried a targeted shot on a hole they already shot in!"
                         + "Taking random shot instead!");
             return randomShot();
         }
@@ -262,4 +207,157 @@ public class PlayerThread extends Thread {
             return target;
         }
     }
+
+
+    // Player 1 Strategy: Take a random first shot, then close shots until
+    private final Runnable basicStrategy = new Runnable() {
+        public void run() {
+            // Don't run if paused
+            if(paused){
+                return;
+            }
+            Message msg;
+            if(iAm == GameConstants.PLAYER_1){
+                msg = mainHandler.obtainMessage(GameConstants.P1_SHOT);
+            }
+            else{
+                msg = mainHandler.obtainMessage(GameConstants.P2_SHOT);
+            }
+
+            if(firstShot){
+                Log.i("Player Thread","Player " + iAm +  " taking random first shot.");
+                msg.arg1 = randomShot();
+                firstShot = false;
+            }
+            // Shoot into a close group until getting a near miss
+            else if(lastOutcome != sameGroupShot()){
+                msg.arg1 = closeGroupShot();
+                String logMsg = "Player " + iAm + " taking near group shot.\nLast group: " + lastGroup;
+                if(lastOutcome == GameConstants.OUTCOME_NEAR_GROUP){
+                    logMsg += "\nLast Outcome: Near group";
+                }
+                Log.i("PlayerThread", logMsg);
+            }
+            // Always take a near-group shot if the last shot was a near miss
+            else{
+                msg.arg1 = sameGroupShot();
+                Log.i("Player Thread", "Player " + iAm + " taking same group shot."
+                        + "\nLast group: " + lastGroup + "\nLast Outcome: Near miss");
+            }
+
+//            switch (lastOutcome) {
+//                case GameConstants.OUTCOME_BIG_MISS:
+//                    msg.arg1 = randomShot();
+//                    if(!firstShot){
+//                        Log.i("Player Thread","Player " + iAm +  " taking random shot."
+//                                + "\nLast group: " + lastGroup + "\nLast Outcome: Big miss");
+//                    }
+//                    else{
+//                        Log.i("Player Thread","Player " + iAm +  " taking random first shot.");
+//                    }
+//                    break;
+//                case GameConstants.OUTCOME_NEAR_GROUP:
+//                    msg.arg1 = closeGroupShot();
+//
+//                    break;
+//                case GameConstants.OUTCOME_NEAR_MISS:
+//                    Log.i("Player Thread", "Player " + iAm + " taking same group shot."
+//                            + "\nLast group: " + lastGroup + "\nLast Outcome: Near miss");
+//                    msg.arg1 = sameGroupShot();
+//                    break;
+//                default:
+//                    Log.e("Player Thread", "Player " + iAm
+//                            + " received an invalid outcome value: " + lastOutcome + "  Taking random shot");
+//                    msg.arg1 = randomShot();
+//            }
+            // Send shot to UI thread and post opponent's runnable with a 2 second delay
+            previousShots.add(msg.arg1);
+            lastGroup = msg.arg1 / GameConstants.GROUP_SIZE;
+            Log.i("Player Thread","Player " + iAm +  " sending shot for hole: " + msg.arg1 + " set last group to: " + lastGroup);
+            mainHandler.sendMessage(msg);
+            opponentHandler.postDelayed(opponent.getTurnRunnable(), 2000);
+        }
+    };
+
+    /**
+     * Runnable that implements the "aggressive" stategy behavior. IN
+     */
+    private final Runnable aggressiveStrategy = new Runnable() {
+        public void run() {
+            // Don't run if paused
+            if(paused){
+                return;
+            }
+
+            Message msg;
+            if(iAm == GameConstants.PLAYER_1){
+                msg = mainHandler.obtainMessage(GameConstants.P1_SHOT);
+            }
+            else{
+                msg = mainHandler.obtainMessage(GameConstants.P2_SHOT);
+            }
+
+            if(firstShot){
+                Log.i("Player Thread","Player " + iAm +  " taking random first shot.");
+                msg.arg1 = randomShot();
+                firstShot = false;
+            }
+            // If last shot was a big miss, skip the next adjacent group and go higher
+            else if(lastOutcome == GameConstants.OUTCOME_BIG_MISS){
+                Log.i("Player Thread", "Player " + iAm + " attempting skip group shot."
+                        + "\nLast group: " + lastGroup + "\nLast Outcome: Big miss");
+               int target;
+
+               // WHen moving in positive direction: If there is a group 2 groups ahead, shoot into it.
+               if(aggressiveDirection == 1 && lastGroup + 2 < (GameConstants.NUM_HOLES / GameConstants.GROUP_SIZE)){
+                   target = (lastGroup + 2) * 5;
+               }
+               // When moving in positive direction: If no group exists 2 ahead, then start moving in negative direction and shoot 1 group behind
+               else if (aggressiveDirection == 1){
+                   target = (lastGroup - 1) * 5;
+                   aggressiveDirection = 0;
+               }
+               // When moving in negative direction: If there is a group 2 groups behind, shoot into it.
+               else if (aggressiveDirection == 0 && lastGroup + 2 < (GameConstants.NUM_HOLES / GameConstants.GROUP_SIZE)){
+                    target = (lastGroup - 2) * 5;
+               }
+               // Moving in negative direction: If no group exists 2 behind, start moving in positive direction and shoot 1 group ahead
+               else{
+                    target = (lastGroup + 1) * 5;
+                    aggressiveDirection = 1;
+               }
+               // Now, make sure target has not already been shot previously
+                int possibleTargets = 5;
+                while(previousShots.contains(target) && possibleTargets > 0){
+                    target+=1;
+                    possibleTargets-=1;
+                }
+                // If there are no possible targets in (probably will never happen), then take a close group shot instead.
+                if(possibleTargets == 0){
+                    target = closeGroupShot();
+                }
+                msg.arg1 = targetHoleShot(target);
+            }
+            // If close group, take a close group shot
+            else if(lastOutcome == GameConstants.OUTCOME_NEAR_GROUP){
+                Log.i("Player Thread", "Player " + iAm + " taking close group shot."
+                        + "\nLast group: " + lastGroup + "\nLast Outcome: Near miss");
+                msg.arg1 = closeGroupShot();
+            }
+            // Always take a near-group shot if the last shot was a near miss
+            else{
+                msg.arg1 = sameGroupShot();
+                Log.i("Player Thread", "Player " + iAm + " taking same group shot."
+                        + "\nLast group: " + lastGroup + "\nLast Outcome: Near miss");
+            }
+
+            // Send shot to UI thread, update last group, and post opponent's runnable with a 2 second delay
+            previousShots.add(msg.arg1);
+            lastGroup = msg.arg1 / GameConstants.GROUP_SIZE;
+            Log.i("Player Thread","Player " + iAm +  " sending shot for hole: " + msg.arg1 + " set last group to: " + lastGroup);
+            mainHandler.sendMessage(msg);
+            opponentHandler.postDelayed(opponent.getTurnRunnable(), 2000);
+
+        }
+    };
 }
