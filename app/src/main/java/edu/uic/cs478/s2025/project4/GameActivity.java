@@ -66,6 +66,11 @@ public class GameActivity extends AppCompatActivity implements  EndGameDialogFra
     private final String GAME_OVER = "game over";
     private final String HOLE_LIST = "hole list";
 
+    private final String P1_SHOTS = "p1Shots";
+    private final String P2_SHOTS = "p2Shots";
+    private ArrayList<Integer> p1Shots;
+    private ArrayList<Integer> p2Shots;
+
     /**
      * Handler that acts as the game server. Receives and responds to messages from PlayerThreads.
      * Upon receiving a shot message, it updates the UI, sends an outcome response back to the player,
@@ -143,6 +148,8 @@ public class GameActivity extends AppCompatActivity implements  EndGameDialogFra
                 p1Location = savedInstanceState.getInt(P1_LOC);
                 p2Location = savedInstanceState.getInt(P2_LOC);
                 lastPlayer = savedInstanceState.getInt(LAST_PLAYER);
+                p1Shots = savedInstanceState.getIntegerArrayList(P1_SHOTS);
+                p2Shots = savedInstanceState.getIntegerArrayList(P2_SHOTS);
                 resumeGameFromConfigChange();
             }
         }
@@ -162,6 +169,8 @@ public class GameActivity extends AppCompatActivity implements  EndGameDialogFra
         outState.putInt(LAST_PLAYER, lastPlayer);
         outState.putBoolean(GAME_OVER, gameOver);
         outState.putIntegerArrayList(HOLE_LIST, golfAdapter.getResourceList());
+        outState.putIntegerArrayList(P1_SHOTS, p1Shots);
+        outState.putIntegerArrayList(P2_SHOTS, p2Shots);
     }
 
     /// Overrode onPause to pause the game if it is still running whenever onPause is called
@@ -280,6 +289,8 @@ public class GameActivity extends AppCompatActivity implements  EndGameDialogFra
         gameOver = false;
         gamePaused = false;
         endGameStatus = -1;
+        p1Shots = new ArrayList<>();
+        p2Shots = new ArrayList<>();
     }
 
     /**
@@ -422,10 +433,7 @@ public class GameActivity extends AppCompatActivity implements  EndGameDialogFra
         // Move player 1 shot location in UI, set outcome, and check for win/catastrophe
         if(player == GameConstants.PLAYER_1){
             p1LastOutcome = getShotOutcome(shotLoc);
-            if(p1Location != -1) {
-                golfAdapter.setImage(p1Location, R.drawable.golf_hole);
-            }
-            if (shotLoc == p2Location){
+            if (p2Shots.contains(shotLoc)){
                 golfAdapter.setImage(shotLoc, R.drawable.blue_catastrophe);
                 Log.i("processShot", "Player 1 catastrophe");
                 gameOver = true;
@@ -441,15 +449,13 @@ public class GameActivity extends AppCompatActivity implements  EndGameDialogFra
                 golfAdapter.setImage(shotLoc, R.drawable.blue_hole);
                 Log.i("processShot", "Player 1 shot " + shotLoc);
                 p1Location = shotLoc;
+                p1Shots.add(shotLoc);
             }
         }
         // Move player 2 shot location in UI, set outcome, and check for win/catastrophe
         else if (player == GameConstants.PLAYER_2){
             p2LastOutcome = getShotOutcome(shotLoc);
-            if(p2Location != -1){
-                golfAdapter.setImage(p2Location, R.drawable.golf_hole);
-            }
-            if (shotLoc == p1Location){
+            if (p1Shots.contains(shotLoc)){
                 golfAdapter.setImage(shotLoc, R.drawable.red_catastrophe);
                 Log.i("processShot", "Player 2 catastrophe");
                 gameOver = true;
@@ -465,6 +471,7 @@ public class GameActivity extends AppCompatActivity implements  EndGameDialogFra
                 golfAdapter.setImage(shotLoc, R.drawable.red_hole);
                 Log.i("processShot", "Player 2 shot " + shotLoc);
                 p2Location = shotLoc;
+                p2Shots.add(shotLoc);
             }
         }
         golfAdapter.notifyDataSetChanged();
