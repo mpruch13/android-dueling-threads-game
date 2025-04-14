@@ -290,7 +290,7 @@ public class PlayerThread extends Thread {
      * Creates and returns a runnable that executes everything a PlayerThread does during
      * a single turn. Each runnable returned by this method follows the same basic format:
      * It determines the next shot location, sends this location as a message to the UI thread,
-     * updates shot tracking variables (LastGroup and previousShots, and finally, posts the
+     * updates shot tracking variables (LastGroup and previousShots), and finally, posts the
      * opponent's runnable to the opponent's job queue with a 2 second delay.
      * The only difference between runnables returned by this method is strategy used to
      * determine the next shot location, which is set using the playerStrategy argument.

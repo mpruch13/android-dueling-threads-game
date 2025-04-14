@@ -83,7 +83,7 @@ public class GameActivity extends AppCompatActivity implements  EndGameDialogFra
             int what = msg.what;
             switch (what) {
                 case GameConstants.P1_SHOT: {
-                    Log.i("MainActivity", "Received shot from player 1");
+                    Log.i("GameActivity", "Received shot from player 1");
                     processShot(GameConstants.PLAYER_1, msg.arg1);
                     if(!gameOver){
                         sendShotOutcome(GameConstants.PLAYER_1);
@@ -92,7 +92,7 @@ public class GameActivity extends AppCompatActivity implements  EndGameDialogFra
                     break;
                 }
                 case GameConstants.P2_SHOT:
-                    Log.i("MainActivity", "Received shot from player 2");
+                    Log.i("GameActivity", "Received shot from player 2");
                     processShot(GameConstants.PLAYER_2, msg.arg1);
                     if(!gameOver){
                         sendShotOutcome(GameConstants.PLAYER_2);
@@ -100,7 +100,7 @@ public class GameActivity extends AppCompatActivity implements  EndGameDialogFra
                     lastPlayer = GameConstants.PLAYER_2;
                     break;
                 default:
-                    Log.e("MainActivity", "Received unknown/invalid message: "
+                    Log.e("GameActivity", "Received unknown/invalid message: "
                             + "\"" + what + "\"");
                     break;
             }
@@ -208,9 +208,7 @@ public class GameActivity extends AppCompatActivity implements  EndGameDialogFra
     private void pauseGame(){
         Message msg1 = p1Handler.obtainMessage(GameConstants.GAME_PAUSED);
         p1Handler.sendMessageAtFrontOfQueue(msg1);
-        msg1.obj = mHandler;
         Message msg2 = p2Handler.obtainMessage(GameConstants.GAME_PAUSED);
-        msg2.obj = mHandler;
         // Make sure game over message takes precedent
         p2Handler.sendMessageAtFrontOfQueue(msg2);
         gamePaused = true;
@@ -252,10 +250,10 @@ public class GameActivity extends AppCompatActivity implements  EndGameDialogFra
         sendResumeMessage();
         // Signal the thread whose turn it is to go
         if(lastPlayer == GameConstants.PLAYER_1){
-            p1Handler.postDelayed(p2Thread.getTurnRunnable(), 2000);
+            p2Handler.postDelayed(p2Thread.getTurnRunnable(), 2000);
         }
         else{
-            p2Handler.postDelayed(p1Thread.getTurnRunnable(), 2000);
+            p1Handler.postDelayed(p1Thread.getTurnRunnable(), 2000);
         }
     }
 
@@ -266,9 +264,7 @@ public class GameActivity extends AppCompatActivity implements  EndGameDialogFra
     private void sendResumeMessage(){
         Message msg1 = p1Handler.obtainMessage(GameConstants.GAME_RESUMED);
         p1Handler.sendMessageAtFrontOfQueue(msg1);
-        msg1.obj = mHandler;
         Message msg2 = p2Handler.obtainMessage(GameConstants.GAME_RESUMED);
-        msg2.obj = mHandler;
         p2Handler.sendMessageAtFrontOfQueue(msg2);
     }
 
@@ -333,8 +329,8 @@ public class GameActivity extends AppCompatActivity implements  EndGameDialogFra
         long p2EndTime = System.currentTimeMillis();
 
         // See how long it took to get the handlers
-        Log.i("MainActivity", "Waiting for p1 Handler took " + (p1EndTime - p1StartTime) + " ms");
-        Log.i("MainActivity", "Waiting for p2 Handler took " + (p2EndTime - p2StartTime) + " ms");
+        Log.i("GameActivity", "Waiting for p1 Handler took " + (p1EndTime - p1StartTime) + " ms");
+        Log.i("GameActivity", "Waiting for p2 Handler took " + (p2EndTime - p2StartTime) + " ms");
 
         // Tell p1Thread to start with a 2 second delay
         p1Handler.postDelayed(p1Thread.getTurnRunnable(), 2000);
@@ -387,7 +383,7 @@ public class GameActivity extends AppCompatActivity implements  EndGameDialogFra
             ph = p2Handler;
             lastOutcome = p2LastOutcome;
         }
-        Log.i("MainActivity", "sendShotOutcome: Sending player " + player + " outcome " + lastOutcome);
+        Log.i("GameActivity", "sendShotOutcome: Sending player " + player + " outcome " + lastOutcome);
         Message msg = ph.obtainMessage(GameConstants.OUTCOME);
         msg.arg1 = lastOutcome;
         ph.sendMessageAtFrontOfQueue(msg);
@@ -512,7 +508,7 @@ public class GameActivity extends AppCompatActivity implements  EndGameDialogFra
     }
 
     /** Implementations of the EndGameDialogFragment's listener interface.
-    * Allows methods from this activity to be called when the use selects an
+    * Allows methods from this activity to be called when the user selects an
     * option from the dialog fragment.
     */
     @Override
