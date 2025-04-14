@@ -1,3 +1,13 @@
+/**
+ Michael Ruch
+ University of Illinois Chicago
+ CS 478, Spring 2025
+
+ A ViewModel class for storing PlayerThreads during a config change. During a config change, the GameActivity sends
+ a message to both threads letting them know to pause the game. When the GameActivity is rebuilt, it uses this
+ ViewModel class to retreive the threads and then sends resumes the game where it left off.
+ */
+
 package edu.uic.cs478.s2025.project4;
 
 import android.os.Handler;
@@ -10,6 +20,7 @@ public class GameViewModel extends ViewModel {
     private PlayerThread p1Thread;
     private PlayerThread p2Thread;
 
+    /// Just setters and getters
     public void setP1Thread(PlayerThread thread){
         p1Thread = thread;
     }
@@ -23,6 +34,10 @@ public class GameViewModel extends ViewModel {
         return p2Thread;
     }
 
+    /**
+     Tell the player threads that the game is over (and that they should end their execution) if the GameActivity
+     is truly destroyed before a game ends (when the user presses the back button).
+     */
     @Override
     protected void onCleared() {
         super.onCleared();

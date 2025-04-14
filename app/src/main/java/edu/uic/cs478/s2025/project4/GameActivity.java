@@ -1,3 +1,19 @@
+/**
+ Michael Ruch
+ University of Illinois Chicago
+ CS 478, Spring 2025
+
+ Activity class for running a game of MicroGolf. Handles the UI, processes player shots, and determines the ultimate
+ outcome of a game. Runs a looper and handler on the UI thread that reacts to messages and sends responses to PlayerThreads
+ throughout a game. After receiving a shot message from a PlayerThread, it updates the UI accordingly, sends the outcome
+ of the shot to the PlayerThread, and determines if the game is over. Games can end after a Jackpot, when a player threads
+ shoots into the winning whole, or a Catastrophe, which is when a player threads shoots into a hole occupied by it's opponent.
+ A catastrophe is an automatic loss for the player who shot into the opponent's hole. Once a game is over, the player threads
+ are sent a message telling them to stop their execution, and a dialog appears that shows the outcome of the game and prompts
+ users to either start a new game or return to the MainActivity's main menu.
+ */
+
+
 package edu.uic.cs478.s2025.project4;
 
 import android.os.Bundle;
@@ -26,7 +42,7 @@ public class GameActivity extends AppCompatActivity implements  EndGameDialogFra
     private GameViewModel threadViewModel;
 
     // note: initHoleList is just the initial list given to the GolfAdapter.
-    //       It does not get updated as the game goes along
+    //       It does not get updated as the game progresses.
     protected ArrayList<Integer> initHoleList;
     private GridView gridView;
     private GolfAdapter golfAdapter;
@@ -41,7 +57,7 @@ public class GameActivity extends AppCompatActivity implements  EndGameDialogFra
     protected boolean gameOver = false;
     FragmentManager mFragmentManager;
 
-    // Keys for saving to/restoring from  bundle
+    // Keys for saving/restoring state
     private final String WINNING_HOLE = "winning hole";
     private final String P1_LOC = "p1 loc";
     private final String P2_LOC = "p2 loc";
@@ -49,7 +65,9 @@ public class GameActivity extends AppCompatActivity implements  EndGameDialogFra
     private final String GAME_OVER = "game over";
     private final String HOLE_LIST = "hole list";
 
-    // This handler, running on the UI thread, will be our server
+    /// Handler that acts as the game server. Receives shot messages from PlayerThreads and reacts to
+    /// them by: updating the UI, sending outcomes back to PlayerThreads, and determining if the game
+    /// is over.
     public  final Handler mHandler = new Handler(Looper.getMainLooper()) {
         public void handleMessage(Message msg) {
             int what = msg.what;
@@ -79,7 +97,6 @@ public class GameActivity extends AppCompatActivity implements  EndGameDialogFra
             // Check if game is over and notify threads if so
             if(gameOver){
                 endGame();
-                //notifyGameOver();
             }
         }
     };
@@ -297,46 +314,6 @@ public class GameActivity extends AppCompatActivity implements  EndGameDialogFra
         msg.obj = mHandler;
         nextPlayerHandler.sendMessage(msg);
     }
-
-//    private void processShot(int player, int shotLoc){
-//        if(player == PLAYER_1){
-//            golfAdapter.setImage(p1Location, R.drawable.golf_hole);
-//            if (shotLoc == p2Location){
-//                golfAdapter.setImage(shotLoc, R.drawable.blue_catastrophe);
-//                Log.i("processShot", "Blue catastrophe");
-//                gameOver = true;
-//            }
-//            else if(shotLoc == winner){
-//                golfAdapter.setImage(shotLoc, R.drawable.blue_win);
-//                Log.i("processShot", "Blue win");
-//                gameOver = true;
-//            }
-//            else{
-//                golfAdapter.setImage(shotLoc, R.drawable.blue_hole);
-//                Log.i("processShot", "Blue shot " + shotLoc);
-//                p1Location = shotLoc;
-//            }
-//        }
-//        else if (player == PLAYER_2){
-//            golfAdapter.setImage(p2Location, R.drawable.golf_hole);
-//            if (shotLoc == p1Location){
-//                golfAdapter.setImage(shotLoc, R.drawable.red_catastrophe);
-//                Log.i("processShot", "Red catastrophe");
-//                gameOver = true;
-//            }
-//            else if(shotLoc == winner){
-//                golfAdapter.setImage(shotLoc, R.drawable.red_win);
-//                Log.i("processShot", "Red win");
-//                gameOver = true;
-//            }
-//            else{
-//                golfAdapter.setImage(shotLoc, R.drawable.red_hole);
-//                Log.i("processShot", "Red shot " + shotLoc);
-//                p2Location = shotLoc;
-//            }
-//        }
-//        golfAdapter.notifyDataSetChanged();
-//    }
 
     private int getShotOutcome(int shotLoc){
         int shotGroup = shotLoc / GameConstants.GROUP_SIZE;

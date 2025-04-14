@@ -3,9 +3,9 @@
  University of Illinois Chicago
  CS 478, Spring 2025
 
- Adapter class for displaying car images in the MainActivity GridView. The View created
- for each grid cell is a vertical LinearLayout containing an ImageView for displaying
- the car thumbnail image and a TextView for displaying the car model name.
+ Adapter class for displaying golf hole images in the GameActivity GridView. Very simple, just
+ uses a single ImageView for each hole in the golf hole array. Gets dynamically updated as the
+ game goes along.
 
  */
 
@@ -31,49 +31,51 @@ public class GolfAdapter extends BaseAdapter {
      * Constructor
      *
      * @param  c Context from the activity that is creating this adapter
-     * @param  holeList An ArrayList containing the res ids of car thumbnail images
+     * @param  holeList An ArrayList containing the res ids of golf hole images.
      */
     public GolfAdapter(Context c, ArrayList<Integer> holeList){
         mContext = c;
         this.mHoles = holeList;
     }
 
+    /// The
     @Override
-    public int getCount() {
-        return mHoles.size();
-    }
-
+    public int getCount() {return mHoles.size();}
     @Override
     public Object getItem(int position) {
         return mHoles.get(position);
     }
-
     @Override
     public long getItemId(int position) {return mHoles.get(position); }
 
+    /**
+     * Returns the resource list of golf holes used in the adapter.
+     * Used for restoring the display after a config change.
+     */
     public ArrayList<Integer> getResourceList(){
         return mHoles;
     }
 
-    public long setImage(int pos, Integer newResId){
-        long oldID = getItemId(pos);
+    /**
+     * Sets the image at the given position to the image represented by the given
+     * resource id. Used to update the display as the game is played.
+     */
+    public void setImage(int pos, Integer newResId){
         mHoles.set(pos, newResId);
-        return oldID;
     }
 
     /**
-     * Recycles or creates a new View for cells that go in the MainActivity
+     * Recycles or creates a new View for cells that go in the GameActivity
      * GridView.
      *
-     * @return Returns a vertical LinearLayout containing a car thumbnail image
-     * and a TextView containing the car's model name.
+     * @return Returns an ImageView containing a golf hole image.
      */
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
-        // View is a linear layout containing
+        // Get the golf hole imageview
         ImageView golfHoleView = (ImageView) convertView;
 
-        // if convertView is not recycled, create it from xml with LayoutInflater
+        // if view is not recycled, create it.
         if (golfHoleView == null) {
             LayoutInflater lf = LayoutInflater.from(mContext);
             golfHoleView = (ImageView) lf.inflate(R.layout.hole, parent, false);

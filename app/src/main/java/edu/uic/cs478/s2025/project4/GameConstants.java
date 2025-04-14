@@ -1,3 +1,15 @@
+/**
+ Michael Ruch
+ University of Illinois Chicago
+ CS 478, Spring 2025
+
+This class just stores game-related constants that are shared by the GameActivity and PlayerThreads.
+The number of holes can also be dynamically adjusted by changing the NUM_HOLES and GROUP_SIZE constants.
+
+    Warning: The game will break if NUM_HOLES is not evenly divisible by GROUP_SIZE (i.e. each group must
+              contain the same number of holes).
+ */
+
 package edu.uic.cs478.s2025.project4;
 
 public class GameConstants {

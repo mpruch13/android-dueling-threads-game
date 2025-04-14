@@ -1,4 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Michael Ruch
+     CS 478, Spring 2025
+     Main description of game is in MainActivity
+     Detailed descriptions of specific functionality are in each class.
+-->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
