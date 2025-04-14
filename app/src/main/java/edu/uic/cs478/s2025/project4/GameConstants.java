@@ -36,7 +36,7 @@ public class GameConstants {
     protected static final int OUTCOME_NEAR_GROUP = 62;
     protected static final int OUTCOME_NEAR_MISS = 63;
 
-    // Player Thread Strategies
+    // PlayerThread strategy flags
     protected static final int STRAT_BASIC = 70;
     protected static final int STRAT_AGGRESSIVE = 71;
 
