@@ -65,9 +65,13 @@ public class GameActivity extends AppCompatActivity implements  EndGameDialogFra
     private final String GAME_OVER = "game over";
     private final String HOLE_LIST = "hole list";
 
-    /// Handler that acts as the game server. Receives shot messages from PlayerThreads and reacts to
-    /// them by: updating the UI, sending outcomes back to PlayerThreads, and determining if the game
-    /// is over.
+    /**
+     * Handler that acts as the game server. Receives and responds to messages from PlayerThreads.
+     * Upon receiving a shot message, it updates the UI, sends an outcome response back to the player,
+     * and determines whether the game is over. If the game is over, it sends a game over message to
+     * player threads and creates a dialog informing the user of the game outcome and giving them
+     * the option to quit or start a new game.
+     */
     public  final Handler mHandler = new Handler(Looper.getMainLooper()) {
         public void handleMessage(Message msg) {
             int what = msg.what;
@@ -111,10 +115,15 @@ public class GameActivity extends AppCompatActivity implements  EndGameDialogFra
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
+        // Initialize gridview and setSelector so no animation plays if the user clicks on a grid cell
         gridView = findViewById(R.id.gridview);
         gridView.setSelector(android.R.color.transparent);
+
+        // Get ViewModel (used for storing threads on config change)
+        // and fragment manager (used for displaying the end game dialog option)
         threadViewModel = new ViewModelProvider(this).get(GameViewModel.class);
         mFragmentManager = getSupportFragmentManager();
+
         // If no savedInstanceState, start a new game
         if (savedInstanceState == null){
             startNewGame();
@@ -138,7 +147,10 @@ public class GameActivity extends AppCompatActivity implements  EndGameDialogFra
         }
     }
 
-
+    /**
+     * Saves necessary member variables so the game can be restored
+     * after a config change.
+     */
     @Override
     protected void onSaveInstanceState (@NonNull Bundle outState){
         Log.i("GameActivity", "In onSaveInstanceState!");
@@ -161,11 +173,20 @@ public class GameActivity extends AppCompatActivity implements  EndGameDialogFra
         Log.i("GameActivity", "In onDestroy");
     }
 
+
+    /**
+     * Restores the display to the state it was in
+     * before the last config change.
+     */
     private void restoreGameUI(){
         golfAdapter = new GolfAdapter(this, initHoleList);
         gridView.setAdapter(golfAdapter);
     }
 
+    /**
+     * Sends messages to the PlayerThreads telling them to pause the
+     * execution of the current game without stopping their execution.
+     */
     private void pauseGame(){
         Message msg1 = p1Handler.obtainMessage(GameConstants.GAME_PAUSED);
         p1Handler.sendMessageAtFrontOfQueue(msg1);
@@ -175,6 +196,12 @@ public class GameActivity extends AppCompatActivity implements  EndGameDialogFra
         // Make sure game over message takes precedent
         p2Handler.sendMessageAtFrontOfQueue(msg2);
     }
+
+    /**
+     * Restores the PlayerThreads from the view model, sends each a
+     * resume message, then posts the turn runnable to the thread
+     * whose turn it was when the game was paused.
+     */
     private void resumeGame(){
         // Restore threads/handlers from View Model
         p1Thread = threadViewModel.getP1Thread();
@@ -186,16 +213,19 @@ public class GameActivity extends AppCompatActivity implements  EndGameDialogFra
         p1Thread.setMainHandler(mHandler);
         p2Thread.setMainHandler(mHandler);
         sendResumeMessage();
-
         // Signal the thread whose turn it is to go
         if(lastPlayer == GameConstants.PLAYER_1){
-            p1Handler.postDelayed(p2Thread.getTurnRunnable(), 3000);
+            p1Handler.postDelayed(p2Thread.getTurnRunnable(), 2000);
         }
         else{
-            p2Handler.postDelayed(p1Thread.getTurnRunnable(), 3000);
+            p2Handler.postDelayed(p1Thread.getTurnRunnable(), 2000);
         }
     }
 
+    /**
+     * Sends a message to each thread letting them know it
+     * is time to resume the game.
+     */
     private void sendResumeMessage(){
         Message msg1 = p1Handler.obtainMessage(GameConstants.GAME_RESUMED);
         p1Handler.sendMessageAtFrontOfQueue(msg1);
@@ -205,6 +235,9 @@ public class GameActivity extends AppCompatActivity implements  EndGameDialogFra
         p2Handler.sendMessageAtFrontOfQueue(msg2);
     }
 
+    /**
+     * Resets game variables ot their original values for a new game.
+     */
     private void resetGameVariables(){
         // UI and hole variables are already reset in init_holes()
         p1Thread = null;
@@ -219,6 +252,13 @@ public class GameActivity extends AppCompatActivity implements  EndGameDialogFra
         gameOver = false;
         endGameStatus = -1;
     }
+
+    /**
+     * Starts a new game. Resets all game variables, initializes the
+     * hole list and display, then initializes both PlayerThreads,
+     * adds them to the ViewModel, gets their handlers, and sends
+     * Player 1 it's turn runnable to get the game going.
+     */
     private void startNewGame(){
         Log.i("GameActivity", "in startNewGame()!");
         resetGameVariables();
@@ -252,6 +292,7 @@ public class GameActivity extends AppCompatActivity implements  EndGameDialogFra
         }
         long p2EndTime = System.currentTimeMillis();
 
+        // See how long it took to get the handlers
         Log.i("MainActivity", "Waiting for p1 Handler took " + (p1EndTime - p1StartTime) + " ms");
         Log.i("MainActivity", "Waiting for p2 Handler took " + (p2EndTime - p2StartTime) + " ms");
 
@@ -259,6 +300,11 @@ public class GameActivity extends AppCompatActivity implements  EndGameDialogFra
         p1Handler.postDelayed(p1Thread.getTurnRunnable(), 2000);
     }
 
+    /**
+     * Ends the game. Notifies both PlayerThreads that the game is over
+     * and creates a dialog informing the player of the game outcome with
+     * options to start a new game or return to the main menu (finish this activity)
+     */
     private void endGame(){
         notifyGameOver();
 
@@ -285,6 +331,12 @@ public class GameActivity extends AppCompatActivity implements  EndGameDialogFra
         endGameFragment.show(mFragmentManager, "END_GAME_DIALOG");
     }
 
+    /**
+     * Sends the latest shot outcome to a PlayerThread
+     * (lastOutcome is updated in processShot())
+     *
+     * @param player An int representing the player to send the outcome to.
+     */
     private void sendShotOutcome(int player){
         Handler ph;
         int lastOutcome;
@@ -302,19 +354,17 @@ public class GameActivity extends AppCompatActivity implements  EndGameDialogFra
         ph.sendMessageAtFrontOfQueue(msg);
     }
 
-    private void sendTakeTurnMsg(int nextPlayer){
-        Handler nextPlayerHandler;
-        if(nextPlayer == GameConstants.PLAYER_1){
-            nextPlayerHandler = p1Handler;
-        }
-        else{
-            nextPlayerHandler = p2Handler;
-        }
-        Message msg = nextPlayerHandler.obtainMessage(GameConstants.TAKE_TURN);
-        msg.obj = mHandler;
-        nextPlayerHandler.sendMessage(msg);
-    }
-
+    /**
+     * Calculates the group the given shot falls into and returns
+     * the outcome. Possible outcomes are: Near miss (shot is in same
+     * group as jackpot), Near Group (shot is in a group adjacent to
+     * jackpot's group), and Big Miss (shot is neither of the previous 2)
+     *
+     * @param shotLoc An int representing a player's shot
+     *
+     * @return An integer flag representing one of the three possible
+     * outcomes
+     */
     private int getShotOutcome(int shotLoc){
         int shotGroup = shotLoc / GameConstants.GROUP_SIZE;
         Log.i("GameActivity", "getShotOutcome: Shot fell into group " + shotGroup);
@@ -332,6 +382,14 @@ public class GameActivity extends AppCompatActivity implements  EndGameDialogFra
         }
     }
 
+    /**
+     * Updates the UI and game variables based on a player's shot.
+     * Determines if the game is over, and if so, sets the gameOver
+     * flag and determines a game outcome (jackpot vs. catastrophe and winner)
+     *
+     * @param player An int representing a player whose shot is being processed
+     * @param shotLoc An int representing the location of the player's latest shot
+     */
     private void processShot(int player, int shotLoc){
         // Move player 1 shot location in UI, set outcome, and check for win/catastrophe
         if(player == GameConstants.PLAYER_1){
@@ -384,6 +442,10 @@ public class GameActivity extends AppCompatActivity implements  EndGameDialogFra
         golfAdapter.notifyDataSetChanged();
     }
 
+    /**
+     * Sends messages to both PlayerThreads letting them know that the game
+     * is over (and that they should end their execution)
+     */
     private void notifyGameOver(){
         Message msg1 = p1Handler.obtainMessage(GameConstants.GAME_OVER);
         p1Handler.sendMessageAtFrontOfQueue(msg1);
@@ -394,6 +456,10 @@ public class GameActivity extends AppCompatActivity implements  EndGameDialogFra
         p2Handler.sendMessageAtFrontOfQueue(msg2);
     }
 
+    /**
+     * Sends messages to both PlayerThreads letting them know that the game
+     * is over (and that they should end their execution)
+     */
     private void initHoles(){
         // Calculate the winning hole and the winning hole group
         winningHole = new Random().nextInt(GameConstants.NUM_HOLES);
@@ -410,11 +476,14 @@ public class GameActivity extends AppCompatActivity implements  EndGameDialogFra
         }
     }
 
+    /** Implementations of the EndGameDialogFragment's listener interface.
+    * Allows methods from this activity to be called when the use selects an
+    * option from the dialog fragment.
+    */
     @Override
     public void onStartNewGame() {
         startNewGame();
     }
-
     @Override
     public void onQuit() {
         finish();
