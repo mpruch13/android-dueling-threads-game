@@ -10,8 +10,8 @@
     <!-- End Game Dialog Strings -->
     <string name="game_over_title">Game Over</string>
     <string name="default_dialog_message">Game Over!</string>
-    <string name="thread1_win">Thread 1 found the winning hole!\nThread 1 Wins!</string>
-    <string name="thread2_win">Thread 2 found the winning hole!\nThread 2 Wins!</string>
+    <string name="thread1_win">Thread 1 hit the Jackpot!\nThread 1 Wins!</string>
+    <string name="thread2_win">Thread 2 hit the Jackpot!\nThread 2 Wins!</string>
     <string name="thread1_catastrophe">Thread 1 shot a catastrophe!\nThread 2 wins!</string>
     <string name="thread2_catastrophe">Thread 2 shot a catastrophe!\nThread 1 wins!</string>
     <string name="dialog_newgame_button">New Game</string>

@@ -20,9 +20,9 @@ public class GameConstants {
     protected static final int GAME_OVER = 4;
 
     // Game results
-    protected static final int THREAD_1_VICTORY = 5;
+    protected static final int THREAD_1_JACKPOT = 5;
     protected static final int THREAD_1_CAT = 6;
-    protected static final int THREAD_2_VICTORY = 7;
+    protected static final int THREAD_2_JACKPOT = 7;
     protected static final int THREAD_2_CAT = 8;
 
     // Players and shot outcomes

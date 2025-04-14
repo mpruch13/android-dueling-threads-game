@@ -55,6 +55,7 @@ public class GameActivity extends AppCompatActivity implements  EndGameDialogFra
     private int p2LastOutcome = GameConstants.OUTCOME_BIG_MISS;
     private int lastPlayer = 0;
     protected boolean gameOver = false;
+    protected boolean gamePaused = false;
     FragmentManager mFragmentManager;
 
     // Keys for saving/restoring state
@@ -142,7 +143,7 @@ public class GameActivity extends AppCompatActivity implements  EndGameDialogFra
                 p1Location = savedInstanceState.getInt(P1_LOC);
                 p2Location = savedInstanceState.getInt(P2_LOC);
                 lastPlayer = savedInstanceState.getInt(LAST_PLAYER);
-                resumeGame();
+                resumeGameFromConfigChange();
             }
         }
     }
@@ -155,10 +156,6 @@ public class GameActivity extends AppCompatActivity implements  EndGameDialogFra
     protected void onSaveInstanceState (@NonNull Bundle outState){
         Log.i("GameActivity", "In onSaveInstanceState!");
         super.onSaveInstanceState(outState);
-        // Pause game if needed (game could be over, in which case we just want to restore UI)
-        if(!gameOver){
-            pauseGame();
-        }
         outState.putInt(WINNING_HOLE, winningHole);
         outState.putInt(P1_LOC, p1Location);
         outState.putInt(P2_LOC, p2Location);
@@ -167,12 +164,24 @@ public class GameActivity extends AppCompatActivity implements  EndGameDialogFra
         outState.putIntegerArrayList(HOLE_LIST, golfAdapter.getResourceList());
     }
 
+    /// Overrode onPause to pause the game if it is still running whenever onPause is called
     @Override
-    protected void onDestroy(){
-        super.onDestroy();
-        Log.i("GameActivity", "In onDestroy");
+    protected void onPause(){
+        super.onPause();
+        // Only pause if game isn't over and threads are alive
+        if(!gameOver && (p1Thread != null && p1Thread.isAlive() && p2Thread.isAlive())){
+                pauseGame();
+        }
     }
 
+    /// Overrode onPause to resume the game if onResume is called while the game is paused
+    @Override
+    protected void onResume(){
+        super.onResume();
+        if(gamePaused){
+            softResumeGame();
+        }
+    }
 
     /**
      * Restores the display to the state it was in
@@ -195,6 +204,25 @@ public class GameActivity extends AppCompatActivity implements  EndGameDialogFra
         msg2.obj = mHandler;
         // Make sure game over message takes precedent
         p2Handler.sendMessageAtFrontOfQueue(msg2);
+        gamePaused = true;
+    }
+
+    /**
+     * For Resuming the game outside of config changes (e.g., if it is minimized or something pops up)
+     * Just sends resume message and
+     */
+    private void softResumeGame(){
+        // Make sure game is not over and threads are alive
+        if(!gameOver && (p1Thread.isAlive() && p2Thread.isAlive())){
+            sendResumeMessage();
+            // Signal the thread whose turn it is to go
+            if(lastPlayer == GameConstants.PLAYER_1){
+                p1Handler.postDelayed(p2Thread.getTurnRunnable(), 2000);
+            }
+            else{
+                p2Handler.postDelayed(p1Thread.getTurnRunnable(), 2000);
+            }
+        }
     }
 
     /**
@@ -202,7 +230,7 @@ public class GameActivity extends AppCompatActivity implements  EndGameDialogFra
      * resume message, then posts the turn runnable to the thread
      * whose turn it was when the game was paused.
      */
-    private void resumeGame(){
+    private void resumeGameFromConfigChange(){
         // Restore threads/handlers from View Model
         p1Thread = threadViewModel.getP1Thread();
         p2Thread = threadViewModel.getP2Thread();
@@ -250,6 +278,7 @@ public class GameActivity extends AppCompatActivity implements  EndGameDialogFra
         p2LastOutcome = GameConstants.OUTCOME_BIG_MISS;
         lastPlayer = 0;
         gameOver = false;
+        gamePaused = false;
         endGameStatus = -1;
     }
 
@@ -307,16 +336,15 @@ public class GameActivity extends AppCompatActivity implements  EndGameDialogFra
      */
     private void endGame(){
         notifyGameOver();
-
         int dialogMsg;
         switch (endGameStatus){
-            case GameConstants.THREAD_1_VICTORY:
+            case GameConstants.THREAD_1_JACKPOT:
                 dialogMsg = R.string.thread1_win;
                 break;
             case GameConstants.THREAD_1_CAT:
                 dialogMsg = R.string.thread1_catastrophe;
                 break;
-            case GameConstants.THREAD_2_VICTORY:
+            case GameConstants.THREAD_2_JACKPOT:
                 dialogMsg = R.string.thread2_win;
                 break;
             case GameConstants.THREAD_2_CAT:
@@ -407,7 +435,7 @@ public class GameActivity extends AppCompatActivity implements  EndGameDialogFra
                 golfAdapter.setImage(shotLoc, R.drawable.blue_win);
                 Log.i("processShot", "Player 1 win");
                 gameOver = true;
-                endGameStatus = GameConstants.THREAD_1_VICTORY;
+                endGameStatus = GameConstants.THREAD_1_JACKPOT;
             }
             else{
                 golfAdapter.setImage(shotLoc, R.drawable.blue_hole);
@@ -431,7 +459,7 @@ public class GameActivity extends AppCompatActivity implements  EndGameDialogFra
                 golfAdapter.setImage(shotLoc, R.drawable.red_win);
                 Log.i("processShot", "Player 2 win");
                 gameOver = true;
-                endGameStatus = GameConstants.THREAD_2_VICTORY;
+                endGameStatus = GameConstants.THREAD_2_JACKPOT;
             }
             else{
                 golfAdapter.setImage(shotLoc, R.drawable.red_hole);

@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/very_long_background"
+    android:orientation="vertical"
+    android:gravity="center_horizontal">
+
+    <TextView
+        android:id="@+id/textView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:fontFamily="sans-serif-medium"
+        android:paddingTop="50dp"
+        android:paddingBottom="70dp"
+        android:text="@string/welcome"
+        android:textAlignment="center"
+        android:textColor="@color/white"
+        android:textSize="48sp"
+        android:typeface="monospace" />
+
+    <TextView
+        android:id="@+id/a_button_desc"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:textColor="@color/white"
+        android:text="@string/main_menu_message"
+        android:textAlignment="center"
+        android:textSize="20sp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="horizontal"
+        android:gravity="center">
+
+        <Button
+            android:id="@+id/button"
+            android:layout_width="175dp"
+            android:layout_height="85dp"
+            android:layout_marginTop="10dp"
+            android:layout_marginRight="15dp"
+            android:backgroundTint="#0B506D"
+            android:text="@string/main_start_button" />
+
+        <Button
+            android:id="@+id/button2"
+            android:layout_width="175dp"
+            android:layout_height="85dp"
+            android:layout_marginTop="10dp"
+            android:layout_marginLeft="15dp"
+            android:backgroundTint="#0B506D"
+            android:text="@string/main_exit_button" />
+
+    </LinearLayout>
+
+</LinearLayout>
